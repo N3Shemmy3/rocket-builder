@@ -1,0 +1,10 @@
+.godot/
+/android/
+/.gradle/
+/.kotlin/
+/build/
+/jvm/
+local.properties
+.idea/
+*.iml
+/out/

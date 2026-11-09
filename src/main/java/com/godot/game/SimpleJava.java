@@ -1,0 +1,14 @@
+package com.godot.game;
+
+import godot.annotation.Script;
+import godot.api.Node3D;
+import godot.global.GD;
+
+@Script
+public class SimpleJava extends Node3D {
+    @Override
+    public void _ready() {
+        GD.print("Hello world!");
+    }
+}
+
