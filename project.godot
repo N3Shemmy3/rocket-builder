@@ -11,5 +11,17 @@ config_version=5
 [application]
 
 config/name="rocket-builder"
+run/main_scene="res://scenes/mission_control.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="rocket-builder"
