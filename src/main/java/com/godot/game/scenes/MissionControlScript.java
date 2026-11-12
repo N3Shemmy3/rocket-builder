@@ -5,7 +5,9 @@ import com.godot.game.core.FlightSimulation;
 import com.godot.game.core.MissionCatalog;
 import com.godot.game.core.MissionContract;
 import com.godot.game.core.PartCatalog;
+import com.godot.game.core.PartCategory;
 import com.godot.game.core.PartCondition;
+import com.godot.game.core.PayloadType;
 import com.godot.game.core.RocketBlueprint;
 import com.godot.game.core.RocketPart;
 import com.godot.game.core.RocketValidator;
@@ -16,34 +18,58 @@ import godot.api.ColorRect;
 import godot.api.Control;
 import godot.api.Label;
 import godot.api.LabelSettings;
+import godot.api.Line2D;
+import godot.api.Polygon2D;
 import godot.api.TextServer;
 import godot.core.Color;
 import godot.core.HorizontalAlignment;
 import godot.core.LambdaCallable0;
+import godot.core.PackedVector2Array;
 import godot.core.Vector2;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Main interactive Godot 2D controller for Earth Mission Control & the Vehicle Assembly Building (VAB).
- * Bridges the pure Java simulation core ({@link RocketBlueprint}, {@link RocketValidator}, {@link FlightSimulation})
- * with Godot's 2D UI and visual rocket launch shaft.
+ * Tactical Vehicle Assembly Building (VAB) & Mission Control scene controller.
+ * Matches user reference wireframes: 5-region left sidebar with 2-column loadout grid,
+ * top/bottom telemetry bars, technical blueprint dimension frame, and a seamless 3-section
+ * vector rocket (Payload > Fuel/Booster Tanks [with zero-gap optional Upper Stage] > Engines).
  */
 @Script
 public class MissionControlScript extends Control {
 
-    // Core pure-Java domain state
+    // Theme Palette (Tactical Dark Aerospace)
+    private static final Color COLOR_BG_DEEP = new Color(0.04, 0.05, 0.07, 1.0);
+    private static final Color COLOR_PANEL_BG = new Color(0.08, 0.09, 0.13, 1.0);
+    private static final Color COLOR_PANEL_BORDER = new Color(0.18, 0.22, 0.30, 1.0);
+    private static final Color COLOR_CARD_DEFAULT_HEADER = new Color(0.16, 0.18, 0.24, 1.0);
+
+    private static final Color COLOR_LIME_ACCENT = new Color(0.70, 1.0, 0.0, 1.0);      // #B4FF00
+    private static final Color COLOR_AMBER_ACCENT = new Color(1.0, 0.62, 0.11, 1.0);    // Surplus Orange
+    private static final Color COLOR_CYAN_ACCENT = new Color(0.35, 0.82, 1.0, 1.0);     // Tech Cyan
+    private static final Color COLOR_WHITE_TEXT = new Color(0.95, 0.96, 0.98, 1.0);
+    private static final Color COLOR_MUTED_TEXT = new Color(0.60, 0.65, 0.75, 1.0);
+    private static final Color COLOR_DARK_TEXT = new Color(0.06, 0.07, 0.10, 1.0);
+    private static final Color COLOR_ERROR_RED = new Color(0.95, 0.25, 0.25, 1.0);
+
+    // Core Domain Models
     private final AgencyState agencyState = new AgencyState();
     private final RocketBlueprint blueprint = new RocketBlueprint();
     private FlightSimulation activeFlight = null;
     private boolean missionRewardClaimed = false;
+    private int selectedMissionIndex = 0;
 
-    // Part selection indices & condition toggles
+    // UI Navigation State
+    private int selectedCategoryTab = 0; // 0 = PAYLOAD, 1 = TANKS, 2 = ENGINES
+    private RocketPart inspectedPart = null;
+
+    // Selections
     private int payloadIndex = 0;
     private boolean payloadSurplus = false;
 
-    private int upperStageIndex = 0; // 0 = None, 1..N = PartCatalog.getUpperStages()
+    private int upperStageIndex = 0; // 0 = NONE, 1..N = Upper stages
     private boolean upperStageSurplus = false;
 
     private int boosterIndex = 0;
@@ -52,58 +78,53 @@ public class MissionControlScript extends Control {
     private int engineIndex = 0;
     private boolean engineSurplus = false;
 
-    // UI References — Top Bar
-    private Label agencyHeaderLabel;
+    // UI Nodes — Top Bar
+    private Label topAgencyStatsLabel;
 
-    // UI References — Left Column (Briefing)
+    // UI Nodes — Left Sidebar Region 1 (Mission Directive)
     private Label missionCodeLabel;
-    private Label missionTypeLabel;
-    private Label missionBriefingLabel;
-    private Label missionReqsLabel;
+    private Label missionSummaryLabel;
 
-    // UI References — Center Column (Part Selectors)
-    private Label payloadInfoLabel;
-    private Button payloadConditionBtn;
-    private Label upperStageInfoLabel;
-    private Button upperStageConditionBtn;
-    private Label boosterInfoLabel;
-    private Button boosterConditionBtn;
-    private Label engineInfoLabel;
-    private Button engineConditionBtn;
+    // UI Nodes — Left Sidebar Region 2 (Inspector & Condition Toggle)
+    private Label inspectorTitleLabel;
+    private Label inspectorStatsLabel;
+    private Button inspectorConditionToggleBtn;
 
-    // UI References — Center Visual Launch Shaft
-    private ColorRect skyBackgroundRect;
-    private ColorRect starsOverlayRect;
-    private Control rocketVisualRoot;
-    private ColorRect noseConeRect;
-    private ColorRect payloadBodyRect;
-    private ColorRect upperStageBodyRect;
-    private ColorRect boosterBodyRect;
-    private ColorRect engineNozzleRect;
-    private ColorRect exhaustFlameRect;
-    private Label shaftTelemetryLabel;
+    // UI Nodes — Left Sidebar Region 3 (Category Tabs)
+    private final Button[] categoryTabButtons = new Button[3];
 
-    // UI References — Right Column (Telemetry & Controls)
-    private Label budgetGaugeLabel;
-    private ColorRect budgetBarFill;
-    private Label timeGaugeLabel;
-    private ColorRect timeBarFill;
-    private Label twrGaugeLabel;
-    private ColorRect twrBarFill;
-    private Label deltaVGaugeLabel;
-    private ColorRect deltaVBarFill;
-    private Label reliabilityGaugeLabel;
-    private Label diagnosticsTextLabel;
+    // UI Nodes — Left Sidebar Region 4 (2-Column Grid Container)
+    private Control gridCardsContainer;
+    private final List<Control> dynamicCardNodes = new ArrayList<>();
 
-    private Button launchButton;
-    private Button stageSepButton;
-    private Button anomalyOverrideButton;
-    private Button resetOrNextButton;
+    // UI Nodes — Left Sidebar Region 5 (Launch Action)
+    private Button launchOrFlightActionButton;
+    private Button secondaryFlightActionButton;
+
+    // UI Nodes — Bottom Bar
+    private Label bottomStatsLeftLabel;
+    private Label bottomStatsRightLabel;
+
+    // UI Nodes — Right Viewport & Blueprint Dimension Frame
+    private ColorRect viewportSkyRect;
+    private Label dimensionTopLabel;
+    private Label dimensionHeightLabel;
+    private Label dimensionPadLabel;
+    private Label viewportTelemetryOverlay;
+
+    // Visual Rocket Nodes
+    private Control rocketRootContainer;
+    private Control payloadVisualContainer;
+    private Control upperStageVisualContainer;
+    private Control boosterVisualContainer;
+    private Control engineVisualContainer;
+    private Control exhaustPlumeContainer;
 
     @Override
     public void _ready() {
-        buildUserInterface();
+        buildTacticalLayout();
         syncBlueprintFromSelections();
+        inspectedPart = blueprint.getPayload();
         refreshAllUi();
     }
 
@@ -122,15 +143,15 @@ public class MissionControlScript extends Control {
             agencyState.recordMissionSuccess(blueprint, MissionCatalog.getMission(selectedMissionIndex));
         }
 
-        updateVisualFlightShaft(delta);
+        updateRocketFlightAnimation(delta);
+
         if (prevPhase != currentPhase || activeFlight.isAnomalyActive()
                 || currentPhase == FlightSimulation.Phase.STAGE_1_ASCENT
                 || currentPhase == FlightSimulation.Phase.UPPER_STAGE_BURN) {
-            refreshTelemetryAndFlightControls();
+            refreshLaunchButtonsAndLog();
+            refreshBottomTelemetryBar();
         }
     }
-
-    private int selectedMissionIndex = 0;
 
     private MissionContract getActiveContract() {
         return MissionCatalog.getMission(selectedMissionIndex);
@@ -158,7 +179,425 @@ public class MissionControlScript extends Control {
         blueprint.setMainEngine(engineSurplus ? e.asSurplus() : e);
     }
 
-    private void autoFitRecommendedBuild() {
+    // =========================================================================
+    // UI LAYOUT GENERATION
+    // =========================================================================
+
+    private void buildTacticalLayout() {
+        // Fullscreen backdrop
+        createBox(this, 0, 0, 1280, 720, COLOR_BG_DEEP, null);
+
+        // ---------------- TOP BAR (y: 0..42) ----------------
+        createBox(this, 0, 0, 1280, 42, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        createLabel(this, "BUILDER // VAB", 16, 10, 160, 22, 13, COLOR_LIME_ACCENT);
+
+        topAgencyStatsLabel = createLabel(this, "", 180, 11, 620, 22, 12, COLOR_WHITE_TEXT);
+
+        createBtn(this, "< PREV", 920, 6, 95, 30, () -> {
+            activeFlight = null;
+            selectedMissionIndex = Math.max(0, selectedMissionIndex - 1);
+            refreshAllUi();
+        });
+        createBtn(this, "NEXT >", 1022, 6, 95, 30, () -> {
+            activeFlight = null;
+            selectedMissionIndex = Math.min(MissionCatalog.getAllMissions().size() - 1, selectedMissionIndex + 1);
+            refreshAllUi();
+        });
+        createBtn(this, "[ AUTO-FIT ]", 1124, 6, 140, 30, this::autoFitCurrentMission);
+
+        // ---------------- LEFT SIDEBAR (x: 16..426, y: 48..672, w: 410, h: 624) ----------------
+        buildLeftSidebar();
+
+        // ---------------- RIGHT VIEWPORT (x: 436..1264, y: 48..672, w: 828, h: 624) ----------------
+        buildRightRocketViewport();
+
+        // ---------------- BOTTOM BAR (y: 678..720) ----------------
+        createBox(this, 0, 678, 1280, 42, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        bottomStatsLeftLabel = createLabel(this, "", 20, 688, 560, 22, 12, COLOR_WHITE_TEXT);
+        bottomStatsRightLabel = createLabel(this, "", 600, 688, 660, 22, 12, COLOR_CYAN_ACCENT);
+        bottomStatsRightLabel.setHorizontalAlignment(HorizontalAlignment.RIGHT);
+    }
+
+    private void buildLeftSidebar() {
+        double x = 16;
+        double w = 410;
+
+        // Box 1: Mission Directive Header (y: 48..118, h: 70)
+        createBox(this, x, 48, w, 70, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        createLabel(this, "// MISSION DIRECTIVE //", x + 12, 54, w - 24, 18, 11, COLOR_CYAN_ACCENT);
+        missionCodeLabel = createLabel(this, "", x + 12, 72, w - 24, 22, 13, COLOR_WHITE_TEXT);
+        missionSummaryLabel = createLabel(this, "", x + 12, 94, w - 24, 18, 11, COLOR_MUTED_TEXT);
+
+        // Box 2: Part Inspector & Condition Toggle (y: 124..232, h: 108)
+        createBox(this, x, 124, w, 108, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        createLabel(this, "// PART INSPECTOR //", x + 12, 130, 200, 18, 11, COLOR_CYAN_ACCENT);
+        inspectorTitleLabel = createLabel(this, "", x + 12, 148, w - 24, 20, 13, COLOR_WHITE_TEXT);
+        inspectorStatsLabel = createWrappedLabel(this, "", x + 12, 168, w - 24, 34, 11, COLOR_MUTED_TEXT);
+
+        inspectorConditionToggleBtn = createBtn(this, "CONDITION: FACTORY NEW", x + 12, 200, w - 24, 26, this::toggleInspectedCondition);
+
+        // Box 3: Parts Category Selector (y: 238..276, h: 38)
+        createBox(this, x, 238, w, 38, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        double tabW = (w - 16) / 3.0;
+        categoryTabButtons[0] = createBtn(this, "1. PAYLOAD", x + 4, 242, tabW - 4, 30, () -> selectCategoryTab(0));
+        categoryTabButtons[1] = createBtn(this, "2. TANKS", x + 4 + tabW, 242, tabW - 4, 30, () -> selectCategoryTab(1));
+        categoryTabButtons[2] = createBtn(this, "3. ENGINES", x + 4 + tabW * 2, 242, tabW - 4, 30, () -> selectCategoryTab(2));
+
+        // Box 4: 2-Column Tactical Parts Grid Container (y: 282..616, h: 334)
+        createBox(this, x, 282, w, 334, COLOR_PANEL_BG, COLOR_PANEL_BORDER);
+        gridCardsContainer = new Control();
+        gridCardsContainer.setPosition(new Vector2(x + 6, 288));
+        gridCardsContainer.setSize(new Vector2(w - 12, 322));
+        addChild(gridCardsContainer);
+
+        // Box 5: High-Contrast LAUNCH / FLIGHT ACTION Button (y: 622..672, h: 50)
+        launchOrFlightActionButton = createBtn(this, "LAUNCH ROCKET", x, 622, w, 50, this::onLaunchOrActionPressed);
+        secondaryFlightActionButton = createBtn(this, "OVERRIDE ANOMALY", x, 584, w, 34, this::onSecondaryActionPressed);
+        secondaryFlightActionButton.setVisible(false);
+    }
+
+    private void buildRightRocketViewport() {
+        double x = 436;
+        double y = 48;
+        double w = 828;
+        double h = 624;
+
+        // Viewport background (dark sky canvas that darkens as rocket ascends)
+        viewportSkyRect = createBox(this, x, y, w, h, new Color(0.06, 0.08, 0.13, 1.0), COLOR_PANEL_BORDER);
+
+        // Reference 1 Blueprint Dimension Frame
+        createTechnicalDimensionFrame(x, y, w, h);
+
+        // Rocket Root Anchor inside viewport (x center = 850, base pad y = 560)
+        rocketRootContainer = new Control();
+        rocketRootContainer.setPosition(new Vector2(822, 560));
+        rocketRootContainer.setSize(new Vector2(120, 480));
+        addChild(rocketRootContainer);
+
+        // Rocket Sections (anchored inside rocketRootContainer)
+        engineVisualContainer = new Control();
+        boosterVisualContainer = new Control();
+        upperStageVisualContainer = new Control();
+        payloadVisualContainer = new Control();
+        exhaustPlumeContainer = new Control();
+
+        rocketRootContainer.addChild(exhaustPlumeContainer);
+        rocketRootContainer.addChild(engineVisualContainer);
+        rocketRootContainer.addChild(boosterVisualContainer);
+        rocketRootContainer.addChild(upperStageVisualContainer);
+        rocketRootContainer.addChild(payloadVisualContainer);
+
+        // Telemetry overlay in upper-right of viewport
+        viewportTelemetryOverlay = createWrappedLabel(this, "", x + 24, y + 24, 300, 120, 12, COLOR_WHITE_TEXT);
+    }
+
+    private void createTechnicalDimensionFrame(double x, double y, double w, double h) {
+        // Reference 1 Technical Dimension Measurement Frame
+        // Top dimension bar
+        createBox(this, x + 40, y + 20, w - 80, 2, COLOR_PANEL_BORDER, null);
+        createBox(this, x + 40, y + 14, 2, 14, COLOR_PANEL_BORDER, null);
+        createBox(this, x + w - 42, y + 14, 2, 14, COLOR_PANEL_BORDER, null);
+        dimensionTopLabel = createLabel(this, "[ Ø 3.8m CORE DIAMETER ]", x + 60, y + 8, w - 120, 16, 10, COLOR_MUTED_TEXT);
+        dimensionTopLabel.setHorizontalAlignment(HorizontalAlignment.CENTER);
+
+        // Right height dimension bar
+        createBox(this, x + w - 24, y + 40, 2, h - 80, COLOR_PANEL_BORDER, null);
+        createBox(this, x + w - 30, y + 40, 14, 2, COLOR_PANEL_BORDER, null);
+        createBox(this, x + w - 30, y + h - 42, 14, 2, COLOR_PANEL_BORDER, null);
+        dimensionHeightLabel = createLabel(this, "HEIGHT\n46.5 m", x + w - 80, y + (h / 2.0) - 20, 52, 34, 10, COLOR_MUTED_TEXT);
+        dimensionHeightLabel.setHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+        // Ground Launch Pad Line
+        createBox(this, x + 30, y + 560, w - 60, 4, new Color(0.25, 0.30, 0.40, 1.0), null);
+        createBox(this, x + 40, y + 564, w - 80, 18, new Color(0.12, 0.14, 0.19, 1.0), null);
+        dimensionPadLabel = createLabel(this, "// LAUNCH PAD LC-39A // STANDBY", x + 50, y + 566, 320, 16, 10, COLOR_MUTED_TEXT);
+
+        // Launch Gantry Mast & Retractable Umbilical
+        createBox(this, 750, y + 210, 10, 350, new Color(0.20, 0.25, 0.35, 1.0), null);
+        createBox(this, 760, y + 280, 46, 6, new Color(0.28, 0.34, 0.46, 1.0), null);
+    }
+
+    // =========================================================================
+    // 2-COLUMN TACTICAL LOADOUT GRID (BOX 4)
+    // =========================================================================
+
+    private void selectCategoryTab(int tabIndex) {
+        selectedCategoryTab = tabIndex;
+        refreshCategoryTabsUI();
+        rebuildTacticalCardsGrid();
+    }
+
+    private void refreshCategoryTabsUI() {
+        for (int i = 0; i < 3; i++) {
+            boolean active = (i == selectedCategoryTab);
+            Button b = categoryTabButtons[i];
+            b.setFlat(!active);
+        }
+    }
+
+    private void rebuildTacticalCardsGrid() {
+        // Clear previous cards
+        for (Control c : dynamicCardNodes) {
+            c.queueFree();
+        }
+        dynamicCardNodes.clear();
+
+        double cardW = 192;
+        double cardH = 74;
+        double gapX = 8;
+        double gapY = 8;
+
+        if (selectedCategoryTab == 0) {
+            // PAYLOAD CATEGORY
+            List<RocketPart> payloads = PartCatalog.getPayloads();
+            for (int i = 0; i < payloads.size(); i++) {
+                final int idx = i;
+                RocketPart part = payloads.get(i);
+                boolean isEquipped = (payloadIndex == i);
+                boolean isSurplus = isEquipped ? payloadSurplus : false;
+
+                double col = i % 2;
+                double row = i / 2;
+                double cardX = col * (cardW + gapX);
+                double cardY = row * (cardH + gapY);
+
+                Control card = createTacticalCard(
+                        cardX, cardY, cardW, cardH,
+                        part,
+                        isEquipped,
+                        isSurplus,
+                        String.format(Locale.US, "Seats: %d | Cargo: %.0fkg", part.getCrewCapacity(), part.getCargoCapacityKg()),
+                        () -> {
+                            payloadIndex = idx;
+                            onSelectionChanged(part);
+                        }
+                );
+                gridCardsContainer.addChild(card);
+                dynamicCardNodes.add(card);
+            }
+        } else if (selectedCategoryTab == 1) {
+            // TANKS CATEGORY (Booster Tanks + Optional Upper Stage)
+            List<RocketPart> boosters = PartCatalog.getBoosterTanks();
+            // Row 0-1: 3 Booster Tanks
+            for (int i = 0; i < boosters.size(); i++) {
+                final int idx = i;
+                RocketPart part = boosters.get(i);
+                boolean isEquipped = (boosterIndex == i);
+                boolean isSurplus = isEquipped ? boosterSurplus : false;
+
+                double col = i % 2;
+                double row = i / 2;
+                double cardX = col * (cardW + gapX);
+                double cardY = row * (cardH + gapY);
+
+                Control card = createTacticalCard(
+                        cardX, cardY, cardW, cardH,
+                        part,
+                        isEquipped,
+                        isSurplus,
+                        String.format(Locale.US, "Propellant: %,.0f kg", part.getFuelMassKg()),
+                        () -> {
+                            boosterIndex = idx;
+                            onSelectionChanged(part);
+                        }
+                );
+                gridCardsContainer.addChild(card);
+                dynamicCardNodes.add(card);
+            }
+
+            // Row 2-3: Upper Stage Options (Tile for [NO UPPER STAGE], then Centaur-Mini & Cryo-Star)
+            // NO UPPER STAGE TILE
+            boolean noUpperEquipped = (upperStageIndex == 0);
+            double noUpperX = 1 * (cardW + gapX);
+            double noUpperY = 1 * (cardH + gapY);
+            Control noUpperCard = createSpecialActionCard(
+                    noUpperX, noUpperY, cardW, cardH,
+                    "[ NO UPPER STAGE ]",
+                    "$0 (Single-Stage)",
+                    noUpperEquipped,
+                    COLOR_LIME_ACCENT,
+                    "Direct Payload-to-Booster (0px gap)",
+                    () -> {
+                        upperStageIndex = 0;
+                        onSelectionChanged(null);
+                    }
+            );
+            gridCardsContainer.addChild(noUpperCard);
+            dynamicCardNodes.add(noUpperCard);
+
+            List<RocketPart> uppers = PartCatalog.getUpperStages();
+            for (int i = 0; i < uppers.size(); i++) {
+                final int uIdx = i + 1;
+                RocketPart part = uppers.get(i);
+                boolean isEquipped = (upperStageIndex == uIdx);
+                boolean isSurplus = isEquipped ? upperStageSurplus : false;
+
+                double col = i % 2;
+                double row = 2 + (i / 2);
+                double cardX = col * (cardW + gapX);
+                double cardY = row * (cardH + gapY);
+
+                Control card = createTacticalCard(
+                        cardX, cardY, cardW, cardH,
+                        part,
+                        isEquipped,
+                        isSurplus,
+                        String.format(Locale.US, "Upper Stage Isp: %.0fs", part.getIspSeconds()),
+                        () -> {
+                            upperStageIndex = uIdx;
+                            onSelectionChanged(part);
+                        }
+                );
+                gridCardsContainer.addChild(card);
+                dynamicCardNodes.add(card);
+            }
+        } else {
+            // ENGINES CATEGORY
+            List<RocketPart> engines = PartCatalog.getEngines();
+            for (int i = 0; i < engines.size(); i++) {
+                final int idx = i;
+                RocketPart part = engines.get(i);
+                boolean isEquipped = (engineIndex == i);
+                boolean isSurplus = isEquipped ? engineSurplus : false;
+
+                double col = i % 2;
+                double row = i / 2;
+                double cardX = col * (cardW + gapX);
+                double cardY = row * (cardH + gapY);
+
+                String nozzleCallout = switch (i) {
+                    case 0 -> "Single Nozzle (480 kN)";
+                    case 1 -> "Twin Nozzle (1,100 kN)";
+                    default -> "Triple Clustered (2,100 kN)";
+                };
+
+                Control card = createTacticalCard(
+                        cardX, cardY, cardW, cardH,
+                        part,
+                        isEquipped,
+                        isSurplus,
+                        nozzleCallout,
+                        () -> {
+                            engineIndex = idx;
+                            onSelectionChanged(part);
+                        }
+                );
+                gridCardsContainer.addChild(card);
+                dynamicCardNodes.add(card);
+            }
+        }
+    }
+
+    private Control createTacticalCard(
+            double x, double y, double w, double h,
+            RocketPart part,
+            boolean isEquipped,
+            boolean isSurplus,
+            String subStatText,
+            Runnable onClick) {
+        Control root = new Control();
+        root.setPosition(new Vector2(x, y));
+        root.setSize(new Vector2(w, h));
+
+        // Background box
+        Color borderCol = isEquipped ? (isSurplus ? COLOR_AMBER_ACCENT : COLOR_LIME_ACCENT) : COLOR_PANEL_BORDER;
+        createBox(root, 0, 0, w, h, COLOR_PANEL_BG, borderCol);
+
+        // Reference 3 Tactical Header Strip (Price & Status Pill)
+        Color headerBg = isEquipped ? (isSurplus ? COLOR_AMBER_ACCENT : COLOR_LIME_ACCENT) : COLOR_CARD_DEFAULT_HEADER;
+        Color headerTextColor = isEquipped ? COLOR_DARK_TEXT : COLOR_WHITE_TEXT;
+        createBox(root, 0, 0, w, 20, headerBg, null);
+
+        long displayCost = isSurplus ? part.asSurplus().getCostDollars() : part.getCostDollars();
+        String priceText = String.format(Locale.US, "$%.1fM %s", displayCost / 1_000_000.0, isSurplus ? "[SURPLUS]" : "");
+        Label priceLbl = createLabel(root, priceText, 6, 2, w - 12, 16, 10, headerTextColor);
+        priceLbl.setClipText(true);
+
+        // Body: Part Name & Stats
+        Label nameLbl = createLabel(root, part.getName(), 6, 24, w - 12, 18, 11, COLOR_WHITE_TEXT);
+        nameLbl.setClipText(true);
+
+        Label statLbl = createLabel(root, subStatText, 6, 42, w - 12, 16, 10, COLOR_MUTED_TEXT);
+        statLbl.setClipText(true);
+
+        String prepText = String.format(Locale.US, "Prep: %dd | Rel: %.0f%%", isSurplus ? part.asSurplus().getPrepDays() : part.getPrepDays(), part.getReliability() * 100.0);
+        Label prepLbl = createLabel(root, prepText, 6, 56, w - 12, 16, 9, isEquipped ? (isSurplus ? COLOR_AMBER_ACCENT : COLOR_LIME_ACCENT) : COLOR_MUTED_TEXT);
+        prepLbl.setClipText(true);
+
+        // Invisible click overlay button
+        Button clickOverlay = createBtn(root, "", 0, 0, w, h, onClick);
+        clickOverlay.setFlat(true);
+
+        return root;
+    }
+
+    private Control createSpecialActionCard(
+            double x, double y, double w, double h,
+            String title,
+            String priceText,
+            boolean isEquipped,
+            Color accentColor,
+            String subStatText,
+            Runnable onClick) {
+        Control root = new Control();
+        root.setPosition(new Vector2(x, y));
+        root.setSize(new Vector2(w, h));
+
+        Color borderCol = isEquipped ? accentColor : COLOR_PANEL_BORDER;
+        createBox(root, 0, 0, w, h, COLOR_PANEL_BG, borderCol);
+
+        Color headerBg = isEquipped ? accentColor : COLOR_CARD_DEFAULT_HEADER;
+        Color headerTextColor = isEquipped ? COLOR_DARK_TEXT : COLOR_WHITE_TEXT;
+        createBox(root, 0, 0, w, 20, headerBg, null);
+
+        Label priceLbl = createLabel(root, priceText, 6, 2, w - 12, 16, 10, headerTextColor);
+        priceLbl.setClipText(true);
+
+        Label nameLbl = createLabel(root, title, 6, 24, w - 12, 18, 11, COLOR_WHITE_TEXT);
+        nameLbl.setClipText(true);
+
+        Label statLbl = createLabel(root, subStatText, 6, 44, w - 12, 24, 10, COLOR_MUTED_TEXT);
+        statLbl.setAutowrapMode(TextServer.AutowrapMode.WORD_SMART);
+
+        Button clickOverlay = createBtn(root, "", 0, 0, w, h, onClick);
+        clickOverlay.setFlat(true);
+
+        return root;
+    }
+
+    private void onSelectionChanged(RocketPart clickedPart) {
+        if (activeFlight != null) {
+            activeFlight = null;
+        }
+        syncBlueprintFromSelections();
+        if (clickedPart != null) {
+            inspectedPart = clickedPart;
+        } else {
+            inspectedPart = blueprint.getBoosterTank();
+        }
+        refreshAllUi();
+    }
+
+    private void toggleInspectedCondition() {
+        if (inspectedPart == null) {
+            return;
+        }
+        if (activeFlight != null) {
+            activeFlight = null;
+        }
+
+        PartCategory cat = inspectedPart.getCategory();
+        switch (cat) {
+            case PAYLOAD -> payloadSurplus = !payloadSurplus;
+            case UPPER_STAGE -> upperStageSurplus = !upperStageSurplus;
+            case BOOSTER_TANK -> boosterSurplus = !boosterSurplus;
+            case ENGINE -> engineSurplus = !engineSurplus;
+        }
+        syncBlueprintFromSelections();
+        refreshAllUi();
+    }
+
+    private void autoFitCurrentMission() {
         if (activeFlight != null) {
             activeFlight = null;
         }
@@ -215,288 +654,333 @@ public class MissionControlScript extends Control {
             }
         }
         syncBlueprintFromSelections();
+        inspectedPart = blueprint.getPayload();
         refreshAllUi();
     }
 
-    private void buildUserInterface() {
-        // Full-screen dark slate background
-        createPanel(this, 0, 0, 1280, 720, color(0.05, 0.07, 0.12, 1.0));
+    // =========================================================================
+    // SEAMLESS 3-SECTION VECTOR ROCKET RENDERING (NO GAPS!)
+    // =========================================================================
 
-        // ================= TOP BAR =================
-        createPanel(this, 0, 0, 1280, 56, color(0.08, 0.12, 0.22, 1.0));
-        createPanel(this, 0, 54, 1280, 2, color(0.20, 0.45, 0.85, 1.0));
+    private void rebuildSeamlessRocketVisual() {
+        // Clear previous visual children
+        clearContainerChildren(payloadVisualContainer);
+        clearContainerChildren(upperStageVisualContainer);
+        clearContainerChildren(boosterVisualContainer);
+        clearContainerChildren(engineVisualContainer);
+        clearContainerChildren(exhaustPlumeContainer);
 
-        createStyledLabel(
-                this,
-                "NASA: Capricorn",
-                16, 8, 520, 22,
-                16, color(0.45, 0.82, 1.0, 1.0)
-        );
-        agencyHeaderLabel = createStyledLabel(
-                this,
-                "",
-                16, 30, 620, 20,
-                12, color(0.80, 0.88, 0.96, 1.0)
-        );
+        RocketPart p = blueprint.getPayload();
+        RocketPart u = blueprint.getUpperStage();
+        RocketPart b = blueprint.getBoosterTank();
+        RocketPart e = blueprint.getMainEngine();
 
-        createActionButton(this, "< Prev Mission", 760, 12, 140, 32, () -> {
-            activeFlight = null;
-            selectedMissionIndex = Math.max(0, selectedMissionIndex - 1);
-            refreshAllUi();
-        });
-        createActionButton(this, "Next Mission >", 910, 12, 140, 32, () -> {
-            activeFlight = null;
-            selectedMissionIndex = Math.min(MissionCatalog.getAllMissions().size() - 1, selectedMissionIndex + 1);
-            refreshAllUi();
-        });
-        createActionButton(this, "Auto-Fit Valid Build", 1065, 12, 195, 32, this::autoFitRecommendedBuild);
+        // Rocket Stack Dimensions
+        double coreWidth = 56.0;
+        double engineSkirtHeight = 44.0;
 
-        // ================= LEFT COLUMN: MISSION BRIEFING =================
-        createPanel(this, 14, 68, 356, 638, color(0.08, 0.11, 0.18, 1.0));
-        createPanel(this, 14, 68, 356, 34, color(0.12, 0.18, 0.30, 1.0));
-        createStyledLabel(this, "1. ACTIVE MISSION DIRECTIVE", 26, 75, 330, 22, 14, color(0.95, 0.78, 0.25, 1.0));
+        // Heights
+        double boosterHeight = 130.0;
+        if (b != null) {
+            if (b.getId().startsWith("tank_heavy")) {
+                boosterHeight = 190.0;
+            } else if (b.getId().startsWith("tank_medium")) {
+                boosterHeight = 160.0;
+            }
+        }
 
-        missionCodeLabel = createStyledLabel(this, "", 26, 112, 332, 26, 16, color(1.0, 1.0, 1.0, 1.0));
-        missionTypeLabel = createStyledLabel(this, "", 26, 138, 332, 22, 13, color(0.35, 0.85, 1.0, 1.0));
+        double upperHeight = (u != null) ? 68.0 : 0.0;
+        double payloadHeight = 92.0;
 
-        missionBriefingLabel = createWrappedLabel(this, "", 26, 168, 332, 155, 13, color(0.84, 0.88, 0.94, 1.0));
+        // Mathematical Vertical Anchoring from Pad Upward:
+        // Base anchor (engine bottom nozzle) is at local y = 0
+        // Section 3: Engine sits at y = -engineSkirtHeight
+        // Section 2: Booster sits directly on engine skirt at y = -(engineSkirtHeight + boosterHeight)
+        // If Upper Stage exists: Upper stage sits at y = -(engineSkirtHeight + boosterHeight + upperHeight)
+        // Section 1: Payload sits directly on top of upper stage (or on booster tank if upper stage is NONE)
+        double engineBaseY = 0.0;
+        double boosterBaseY = -engineSkirtHeight;
+        double upperStageBaseY = boosterBaseY - boosterHeight;
+        double payloadBaseY = (u != null) ? (upperStageBaseY - upperHeight) : (boosterBaseY - boosterHeight);
 
-        createPanel(this, 24, 330, 336, 360, color(0.06, 0.09, 0.14, 1.0));
-        createStyledLabel(this, "CONTRACT CONSTRAINTS & TARGETS", 34, 340, 316, 22, 13, color(0.45, 0.82, 1.0, 1.0));
-        missionReqsLabel = createWrappedLabel(this, "", 34, 368, 316, 310, 13, color(0.90, 0.94, 0.98, 1.0));
+        // 1. SECTION 3: ENGINES (Flared Skirt + Swept Fins + Nozzles)
+        engineVisualContainer.setPosition(new Vector2(0, boosterBaseY));
+        drawEngineSection(coreWidth, engineSkirtHeight, e);
 
-        // ================= CENTER COLUMN: VAB & 2D LAUNCH SHAFT =================
-        createPanel(this, 382, 68, 504, 638, color(0.08, 0.11, 0.18, 1.0));
-        createPanel(this, 382, 68, 504, 34, color(0.12, 0.18, 0.30, 1.0));
-        createStyledLabel(this, "2. VEHICLE ASSEMBLY BAY (VAB) & LAUNCH PAD", 394, 75, 480, 22, 14, color(0.95, 0.78, 0.25, 1.0));
+        // 2. SECTION 2: FUEL / BOOSTER TANK
+        boosterVisualContainer.setPosition(new Vector2(0, upperStageBaseY));
+        drawBoosterTankSection(coreWidth, boosterHeight, b);
 
-        // 4 Modular Part Selector Cards on the left side of Center Column (x=392..676)
-        buildPartSelectorCard(
-                "SLOT A: PAYLOAD / CAPSULE",
-                392, 112,
-                () -> {
-                    payloadIndex--;
-                    onAssemblyModified();
-                },
-                () -> {
-                    payloadIndex++;
-                    onAssemblyModified();
-                },
-                () -> {
-                    payloadSurplus = !payloadSurplus;
-                    onAssemblyModified();
-                },
-                0
-        );
+        // 2B. OPTIONAL UPPER STAGE
+        if (u != null) {
+            upperStageVisualContainer.setVisible(true);
+            upperStageVisualContainer.setPosition(new Vector2(0, payloadBaseY));
+            drawUpperStageSection(coreWidth, upperHeight, u);
+        } else {
+            upperStageVisualContainer.setVisible(false);
+        }
 
-        buildPartSelectorCard(
-                "SLOT B: UPPER STAGE (OPTIONAL)",
-                392, 256,
-                () -> {
-                    int count = PartCatalog.getUpperStages().size() + 1;
-                    upperStageIndex = Math.floorMod(upperStageIndex - 1, count);
-                    onAssemblyModified();
-                },
-                () -> {
-                    int count = PartCatalog.getUpperStages().size() + 1;
-                    upperStageIndex = Math.floorMod(upperStageIndex + 1, count);
-                    onAssemblyModified();
-                },
-                () -> {
-                    upperStageSurplus = !upperStageSurplus;
-                    onAssemblyModified();
-                },
-                1
-        );
+        // 3. SECTION 1: PAYLOAD (Tapered Nosecone, Porthole/Cargo Ribs)
+        payloadVisualContainer.setPosition(new Vector2(0, payloadBaseY - payloadHeight));
+        drawPayloadSection(coreWidth, payloadHeight, p);
 
-        buildPartSelectorCard(
-                "SLOT C: FIRST-STAGE BOOSTER TANK",
-                392, 400,
-                () -> {
-                    boosterIndex--;
-                    onAssemblyModified();
-                },
-                () -> {
-                    boosterIndex++;
-                    onAssemblyModified();
-                },
-                () -> {
-                    boosterSurplus = !boosterSurplus;
-                    onAssemblyModified();
-                },
-                2
-        );
+        // Exhaust Plumes (Under Engine Nozzles)
+        exhaustPlumeContainer.setPosition(new Vector2(0, engineBaseY));
+        drawExhaustPlumes(coreWidth, e);
 
-        buildPartSelectorCard(
-                "SLOT D: MAIN LAUNCH ENGINE",
-                392, 544,
-                () -> {
-                    engineIndex--;
-                    onAssemblyModified();
-                },
-                () -> {
-                    engineIndex++;
-                    onAssemblyModified();
-                },
-                () -> {
-                    engineSurplus = !engineSurplus;
-                    onAssemblyModified();
-                },
-                3
-        );
-
-        // 2D Visual Rocket & Launch Shaft on right side of Center Column (x=688, y=112, w=188, h=580)
-        skyBackgroundRect = createPanel(this, 688, 112, 188, 580, color(0.10, 0.24, 0.44, 1.0));
-        starsOverlayRect = createPanel(this, 688, 112, 188, 220, color(0.02, 0.03, 0.08, 0.65));
-
-        // Ground pad & launch gantry tower
-        createPanel(this, 688, 652, 188, 40, color(0.18, 0.22, 0.26, 1.0));
-        createPanel(this, 706, 360, 12, 292, color(0.32, 0.36, 0.42, 1.0)); // Gantry mast
-        createPanel(this, 718, 420, 36, 6, color(0.32, 0.36, 0.42, 1.0));   // Umbilical arm
-
-        shaftTelemetryLabel = createWrappedLabel(this, "", 694, 118, 176, 86, 11, color(0.85, 0.95, 1.0, 1.0));
-
-        // Rocket Visual Container (moves up during launch!)
-        rocketVisualRoot = new Control();
-        rocketVisualRoot.setPosition(new Vector2(745, 360));
-        rocketVisualRoot.setSize(new Vector2(90, 290));
-        addChild(rocketVisualRoot);
-
-        noseConeRect = createPanel(rocketVisualRoot, 27, 20, 36, 26, color(0.92, 0.94, 0.98, 1.0));
-        payloadBodyRect = createPanel(rocketVisualRoot, 21, 46, 48, 46, color(0.20, 0.62, 0.92, 1.0));
-        upperStageBodyRect = createPanel(rocketVisualRoot, 23, 94, 44, 52, color(0.82, 0.86, 0.92, 1.0));
-        boosterBodyRect = createPanel(rocketVisualRoot, 17, 148, 56, 112, color(0.90, 0.92, 0.95, 1.0));
-        engineNozzleRect = createPanel(rocketVisualRoot, 27, 260, 36, 24, color(0.28, 0.32, 0.38, 1.0));
-        exhaustFlameRect = createPanel(rocketVisualRoot, 31, 284, 28, 48, color(1.0, 0.55, 0.10, 0.0));
-
-        // ================= RIGHT COLUMN: TELEMETRY & LAUNCH CONTROL =================
-        createPanel(this, 898, 68, 368, 638, color(0.08, 0.11, 0.18, 1.0));
-        createPanel(this, 898, 68, 368, 34, color(0.12, 0.18, 0.30, 1.0));
-        createStyledLabel(this, "3. TELEMETRY, BUDGET & LAUNCH DECK", 910, 75, 345, 22, 14, color(0.95, 0.78, 0.25, 1.0));
-
-        // Gauge 1: Budget
-        budgetGaugeLabel = createStyledLabel(this, "", 912, 112, 340, 20, 13, color(1.0, 1.0, 1.0, 1.0));
-        createPanel(this, 912, 134, 340, 12, color(0.15, 0.18, 0.24, 1.0));
-        budgetBarFill = createPanel(this, 912, 134, 170, 12, color(0.20, 0.85, 0.45, 1.0));
-
-        // Gauge 2: Prep Time
-        timeGaugeLabel = createStyledLabel(this, "", 912, 156, 340, 20, 13, color(1.0, 1.0, 1.0, 1.0));
-        createPanel(this, 912, 178, 340, 12, color(0.15, 0.18, 0.24, 1.0));
-        timeBarFill = createPanel(this, 912, 178, 170, 12, color(0.20, 0.85, 0.45, 1.0));
-
-        // Gauge 3: Launch TWR
-        twrGaugeLabel = createStyledLabel(this, "", 912, 200, 340, 20, 13, color(1.0, 1.0, 1.0, 1.0));
-        createPanel(this, 912, 222, 340, 12, color(0.15, 0.18, 0.24, 1.0));
-        twrBarFill = createPanel(this, 912, 222, 170, 12, color(0.20, 0.85, 0.45, 1.0));
-
-        // Gauge 4: Total Delta-V
-        deltaVGaugeLabel = createStyledLabel(this, "", 912, 244, 340, 20, 13, color(1.0, 1.0, 1.0, 1.0));
-        createPanel(this, 912, 266, 340, 12, color(0.15, 0.18, 0.24, 1.0));
-        deltaVBarFill = createPanel(this, 912, 266, 170, 12, color(0.20, 0.85, 0.45, 1.0));
-
-        // Gauge 5: Reliability & Mass Summary
-        reliabilityGaugeLabel = createStyledLabel(this, "", 912, 288, 340, 22, 13, color(0.85, 0.90, 0.98, 1.0));
-
-        // Diagnostics & Flight Log Box
-        createPanel(this, 910, 318, 344, 195, color(0.05, 0.08, 0.13, 1.0));
-        createStyledLabel(this, "ENGINEERING & FLIGHT TELEMETRY LOG", 920, 324, 324, 20, 12, color(0.45, 0.82, 1.0, 1.0));
-        diagnosticsTextLabel = createWrappedLabel(this, "", 920, 348, 324, 158, 12, color(0.90, 0.95, 0.90, 1.0));
-
-        // Action Buttons
-        launchButton = createActionButton(this, "COMMIT & LAUNCH ROCKET", 910, 524, 344, 42, this::onLaunchPressed);
-        stageSepButton = createActionButton(this, "STAGE SEPARATION (IGNITE UPPER STAGE)", 910, 572, 344, 38, this::onStageSepPressed);
-        anomalyOverrideButton = createActionButton(this, "OVERRIDE ANOMALY (PURGE VALVES)", 910, 616, 344, 38, this::onAnomalyOverridePressed);
-        resetOrNextButton = createActionButton(this, "RESET PAD / ADVANCE MISSION", 910, 660, 344, 36, this::onResetOrNextPressed);
+        // Update technical dimension labels
+        double totalPixelHeight = engineSkirtHeight + boosterHeight + upperHeight + payloadHeight;
+        double estimatedMeters = totalPixelHeight * 0.14;
+        dimensionHeightLabel.setText(String.format(Locale.US, "TOTAL HT\n%.1fm", estimatedMeters));
     }
 
-    private void buildPartSelectorCard(
-            String slotTitle,
-            double x,
-            double y,
-            Runnable onPrev,
-            Runnable onNext,
-            Runnable onToggleCondition,
-            int slotIndex) {
-        createPanel(this, x, y, 284, 134, color(0.06, 0.09, 0.15, 1.0));
-        createStyledLabel(this, slotTitle, x + 10, y + 6, 264, 18, 12, color(0.45, 0.82, 1.0, 1.0));
+    private void drawPayloadSection(double width, double height, RocketPart payload) {
+        Color bodyColor = (payload != null && payload.getCondition() == PartCondition.SURPLUS_REFURBISHED)
+                ? new Color(0.82, 0.60, 0.32, 1.0)
+                : new Color(0.92, 0.94, 0.98, 1.0);
 
-        Label infoLabel = createWrappedLabel(this, "", x + 10, y + 26, 264, 66, 12, color(0.92, 0.95, 1.0, 1.0));
+        double centerX = width / 2.0;
 
-        createActionButton(this, "<", x + 10, y + 96, 38, 30, onPrev);
-        createActionButton(this, ">", x + 54, y + 96, 38, 30, onNext);
-        Button condBtn = createActionButton(this, "Condition: NEW", x + 100, y + 96, 174, 30, onToggleCondition);
+        // Tapered aerodynamic nose cone polygon: (centerX, 0) -> (width, height * 0.6) -> (width, height) -> (0, height) -> (0, height * 0.6)
+        Vector2[] noseVerts = new Vector2[]{
+                new Vector2(centerX, 0),
+                new Vector2(width, height * 0.58),
+                new Vector2(width, height),
+                new Vector2(0, height),
+                new Vector2(0, height * 0.58)
+        };
+        createPolygon(payloadVisualContainer, noseVerts, bodyColor);
+        createLine(payloadVisualContainer, noseVerts, true, 2.0f, COLOR_WHITE_TEXT);
 
-        switch (slotIndex) {
-            case 0 -> {
-                payloadInfoLabel = infoLabel;
-                payloadConditionBtn = condBtn;
-            }
-            case 1 -> {
-                upperStageInfoLabel = infoLabel;
-                upperStageConditionBtn = condBtn;
-            }
-            case 2 -> {
-                boosterInfoLabel = infoLabel;
-                boosterConditionBtn = condBtn;
-            }
-            default -> {
-                engineInfoLabel = infoLabel;
-                engineConditionBtn = condBtn;
-            }
+        // Technical details based on payload type
+        if (payload != null && payload.getPayloadType() == PayloadType.CREW_RESCUE_CAPSULE) {
+            // Porthole Window (Crew Capsule)
+            createBox(payloadVisualContainer, centerX - 8, height * 0.50, 16, 16, COLOR_BG_DEEP, COLOR_CYAN_ACCENT);
+            createBox(payloadVisualContainer, centerX - 5, height * 0.50 + 3, 10, 10, COLOR_CYAN_ACCENT, null);
+            // Reentry Hatch Line
+            createBox(payloadVisualContainer, centerX - 12, height * 0.74, 24, 2, COLOR_MUTED_TEXT, null);
+        } else if (payload != null && payload.getPayloadType() == PayloadType.SUPPLY_CARGO_POD) {
+            // Horizontal Cargo Ribs
+            createBox(payloadVisualContainer, 4, height * 0.45, width - 8, 2, COLOR_MUTED_TEXT, null);
+            createBox(payloadVisualContainer, 4, height * 0.65, width - 8, 2, COLOR_MUTED_TEXT, null);
+            createBox(payloadVisualContainer, 4, height * 0.85, width - 8, 2, COLOR_MUTED_TEXT, null);
+        } else {
+            // Science Sensor louvers & Antenna Mast
+            createBox(payloadVisualContainer, centerX - 1, -16, 2, 16, COLOR_CYAN_ACCENT, null);
+            createBox(payloadVisualContainer, centerX - 5, -18, 10, 3, COLOR_CYAN_ACCENT, null);
+            createBox(payloadVisualContainer, 6, height * 0.70, width - 12, 10, new Color(0.12, 0.22, 0.35, 1.0), COLOR_CYAN_ACCENT);
         }
     }
 
-    private void onAssemblyModified() {
-        if (activeFlight != null) {
-            activeFlight = null;
-        }
-        syncBlueprintFromSelections();
-        refreshAllUi();
+    private void drawUpperStageSection(double width, double height, RocketPart upperStage) {
+        Color bodyColor = (upperStage != null && upperStage.getCondition() == PartCondition.SURPLUS_REFURBISHED)
+                ? new Color(0.72, 0.58, 0.38, 1.0)
+                : new Color(0.85, 0.88, 0.94, 1.0);
+
+        // Upper Stage Main Body
+        createBox(upperStageVisualContainer, 0, 0, width, height, bodyColor, COLOR_WHITE_TEXT);
+
+        // Interstage Separation Band at the bottom (dark structural lattice)
+        createBox(upperStageVisualContainer, 0, height - 8, width, 8, new Color(0.18, 0.20, 0.26, 1.0), COLOR_MUTED_TEXT);
+
+        // Cryogenic insulation vertical seams
+        double centerX = width / 2.0;
+        createBox(upperStageVisualContainer, centerX - 12, 4, 1, height - 16, COLOR_MUTED_TEXT, null);
+        createBox(upperStageVisualContainer, centerX + 12, 4, 1, height - 16, COLOR_MUTED_TEXT, null);
     }
 
-    private void onLaunchPressed() {
-        MissionContract contract = getActiveContract();
-        ValidationResult validation = RocketValidator.validate(blueprint, contract);
-        if (!validation.isValidForMission()) {
-            refreshAllUi();
+    private void drawBoosterTankSection(double width, double height, RocketPart booster) {
+        Color bodyColor = (booster != null && booster.getCondition() == PartCondition.SURPLUS_REFURBISHED)
+                ? new Color(0.68, 0.52, 0.32, 1.0)
+                : new Color(0.90, 0.92, 0.96, 1.0);
+
+        // Main cylindrical fuselage
+        createBox(boosterVisualContainer, 0, 0, width, height, bodyColor, COLOR_WHITE_TEXT);
+
+        // External pressurization line along left flank
+        createBox(boosterVisualContainer, -4, 6, 3, height - 12, new Color(0.35, 0.40, 0.50, 1.0), null);
+
+        // Vertical stringer ribs (structural panel lines)
+        double centerX = width / 2.0;
+        createBox(boosterVisualContainer, centerX - 16, 8, 1, height - 16, COLOR_MUTED_TEXT, null);
+        createBox(boosterVisualContainer, centerX, 8, 1, height - 16, COLOR_MUTED_TEXT, null);
+        createBox(boosterVisualContainer, centerX + 16, 8, 1, height - 16, COLOR_MUTED_TEXT, null);
+
+        // Horizontal weld seams
+        createBox(boosterVisualContainer, 0, height * 0.33, width, 1, COLOR_MUTED_TEXT, null);
+        createBox(boosterVisualContainer, 0, height * 0.66, width, 1, COLOR_MUTED_TEXT, null);
+    }
+
+    private void drawEngineSection(double width, double height, RocketPart engine) {
+        Color skirtColor = (engine != null && engine.getCondition() == PartCondition.SURPLUS_REFURBISHED)
+                ? new Color(0.50, 0.38, 0.24, 1.0)
+                : new Color(0.32, 0.36, 0.45, 1.0);
+
+        // Flared engine skirt polygon: (0, 0) -> (width, 0) -> (width + 12, height) -> (-12, height)
+        Vector2[] skirtVerts = new Vector2[]{
+                new Vector2(0, 0),
+                new Vector2(width, 0),
+                new Vector2(width + 12, height),
+                new Vector2(-12, height)
+        };
+        createPolygon(engineVisualContainer, skirtVerts, skirtColor);
+        createLine(engineVisualContainer, skirtVerts, true, 2.0f, COLOR_WHITE_TEXT);
+
+        // Reference 1 & 2 Swept Aerodynamic Fins
+        // Left Fin: (-12, 10) -> (-34, height + 8) -> (-12, height)
+        Vector2[] leftFinVerts = new Vector2[]{
+                new Vector2(-12, 10),
+                new Vector2(-36, height + 10),
+                new Vector2(-12, height)
+        };
+        createPolygon(engineVisualContainer, leftFinVerts, new Color(0.25, 0.28, 0.36, 1.0));
+        createLine(engineVisualContainer, leftFinVerts, true, 2.0f, COLOR_WHITE_TEXT);
+
+        // Right Fin: (width + 12, 10) -> (width + 34, height + 8) -> (width + 12, height)
+        Vector2[] rightFinVerts = new Vector2[]{
+                new Vector2(width + 12, 10),
+                new Vector2(width + 36, height + 10),
+                new Vector2(width + 12, height)
+        };
+        createPolygon(engineVisualContainer, rightFinVerts, new Color(0.25, 0.28, 0.36, 1.0));
+        createLine(engineVisualContainer, rightFinVerts, true, 2.0f, COLOR_WHITE_TEXT);
+
+        // Engine Thruster Nozzles (Bells) at bottom
+        int nozzleCount = 1;
+        if (engine != null) {
+            if (engine.getId().startsWith("engine_heavy")) {
+                nozzleCount = 3;
+            } else if (engine.getId().startsWith("engine_methalox")) {
+                nozzleCount = 2;
+            }
+        }
+
+        double nozzleY = height;
+        double nozzleHeight = 16.0;
+        double skirtBottomWidth = width + 24.0;
+        double skirtLeft = -12.0;
+
+        if (nozzleCount == 1) {
+            // Single Large Bell
+            double bellW = 28.0;
+            double bellX = (width / 2.0) - (bellW / 2.0);
+            drawNozzleBell(engineVisualContainer, bellX, nozzleY, bellW, nozzleHeight);
+        } else if (nozzleCount == 2) {
+            // Twin Bells
+            double bellW = 20.0;
+            double centerX = width / 2.0;
+            drawNozzleBell(engineVisualContainer, centerX - bellW - 3, nozzleY, bellW, nozzleHeight);
+            drawNozzleBell(engineVisualContainer, centerX + 3, nozzleY, bellW, nozzleHeight);
+        } else {
+            // Triple Clustered Bells
+            double bellW = 16.0;
+            double centerX = width / 2.0;
+            drawNozzleBell(engineVisualContainer, centerX - bellW * 1.5 - 4, nozzleY, bellW, nozzleHeight);
+            drawNozzleBell(engineVisualContainer, centerX - (bellW / 2.0), nozzleY, bellW, nozzleHeight);
+            drawNozzleBell(engineVisualContainer, centerX + (bellW * 0.5) + 4, nozzleY, bellW, nozzleHeight);
+        }
+    }
+
+    private void drawNozzleBell(Control parent, double x, double y, double w, double h) {
+        Vector2[] bellVerts = new Vector2[]{
+                new Vector2(x + (w * 0.20), y),
+                new Vector2(x + (w * 0.80), y),
+                new Vector2(x + w, y + h),
+                new Vector2(x, y + h)
+        };
+        createPolygon(parent, bellVerts, new Color(0.18, 0.20, 0.25, 1.0));
+        createLine(parent, bellVerts, true, 1.5f, COLOR_MUTED_TEXT);
+    }
+
+    private void drawExhaustPlumes(double width, RocketPart engine) {
+        int nozzleCount = (engine != null && engine.getId().startsWith("engine_heavy")) ? 3
+                : (engine != null && engine.getId().startsWith("engine_methalox") ? 2 : 1);
+
+        double plumeY = 16.0;
+        double centerX = width / 2.0;
+
+        if (nozzleCount == 1) {
+            createBox(exhaustPlumeContainer, centerX - 12, plumeY, 24, 46, COLOR_AMBER_ACCENT, null);
+            createBox(exhaustPlumeContainer, centerX - 6, plumeY + 4, 12, 38, COLOR_LIME_ACCENT, null);
+        } else if (nozzleCount == 2) {
+            createBox(exhaustPlumeContainer, centerX - 21, plumeY, 16, 42, COLOR_AMBER_ACCENT, null);
+            createBox(exhaustPlumeContainer, centerX + 5, plumeY, 16, 42, COLOR_AMBER_ACCENT, null);
+        } else {
+            createBox(exhaustPlumeContainer, centerX - 26, plumeY, 14, 42, COLOR_AMBER_ACCENT, null);
+            createBox(exhaustPlumeContainer, centerX - 7, plumeY, 14, 46, COLOR_AMBER_ACCENT, null);
+            createBox(exhaustPlumeContainer, centerX + 12, plumeY, 14, 42, COLOR_AMBER_ACCENT, null);
+        }
+        exhaustPlumeContainer.setVisible(false);
+    }
+
+    // =========================================================================
+    // FLIGHT ANIMATION & TELEMETRY
+    // =========================================================================
+
+    private void updateRocketFlightAnimation(double delta) {
+        if (activeFlight == null) {
+            rocketRootContainer.setPosition(new Vector2(822, 560));
+            exhaustPlumeContainer.setVisible(false);
+            viewportSkyRect.setColor(new Color(0.06, 0.08, 0.13, 1.0));
+            boosterVisualContainer.setVisible(true);
+            engineVisualContainer.setVisible(true);
             return;
         }
-        missionRewardClaimed = false;
-        activeFlight = new FlightSimulation(blueprint, contract);
-        activeFlight.startLaunch();
-        refreshAllUi();
+
+        double progress = activeFlight.getOverallProgressRatio();
+        FlightSimulation.Phase phase = activeFlight.getPhase();
+
+        // Sky transition from atmosphere to orbital black
+        double r = 0.06 * (1.0 - progress) + 0.01 * progress;
+        double g = 0.08 * (1.0 - progress) + 0.01 * progress;
+        double b = 0.13 * (1.0 - progress) + 0.03 * progress;
+        viewportSkyRect.setColor(new Color(r, g, b, 1.0));
+
+        // Smooth ascent translation up the launch shaft
+        double currentY = 560.0 - (progress * 260.0);
+        rocketRootContainer.setPosition(new Vector2(822, currentY));
+
+        // Stage 1 separation (booster & main engine jettisoned)
+        boolean stage1Burning = (phase == FlightSimulation.Phase.STAGE_1_ASCENT);
+        boolean stage1Attached = (phase == FlightSimulation.Phase.PRE_LAUNCH
+                || phase == FlightSimulation.Phase.STAGE_1_ASCENT
+                || phase == FlightSimulation.Phase.AWAITING_STAGE_SEP);
+
+        boosterVisualContainer.setVisible(stage1Attached);
+        engineVisualContainer.setVisible(stage1Attached);
+
+        boolean burning = (phase == FlightSimulation.Phase.STAGE_1_ASCENT || phase == FlightSimulation.Phase.UPPER_STAGE_BURN);
+        exhaustPlumeContainer.setVisible(burning);
+
+        viewportTelemetryOverlay.setText(String.format(
+                Locale.US,
+                "// FLIGHT TELEMETRY //\n"
+                        + "Phase: %s\n"
+                        + "Mission Time: T+%.1fs\n"
+                        + "Altitude: %,.0f km / %,.0f km\n"
+                        + "Velocity: %,.0f m/s / %,.0f m/s\n"
+                        + "%s",
+                phase.getDisplayName(),
+                activeFlight.getElapsedSeconds(),
+                activeFlight.getCurrentAltitudeKm(),
+                getActiveContract().getTargetAltitudeKm(),
+                activeFlight.getCurrentVelocityMps(),
+                getActiveContract().getRequiredDeltaVMps(),
+                activeFlight.isAnomalyActive() ? ("\n>>> " + activeFlight.getActiveAnomalyMessage()) : ""
+        ));
     }
 
-    private void onStageSepPressed() {
-        if (activeFlight != null) {
-            activeFlight.triggerStageSeparation();
-            refreshTelemetryAndFlightControls();
-        }
-    }
-
-    private void onAnomalyOverridePressed() {
-        if (activeFlight != null) {
-            activeFlight.resolveAnomaly();
-            refreshTelemetryAndFlightControls();
-        }
-    }
-
-    private void onResetOrNextPressed() {
-        if (activeFlight != null && activeFlight.getPhase() == FlightSimulation.Phase.ORBIT_ACHIEVED) {
-            selectedMissionIndex = agencyState.getCurrentMissionIndex();
-        }
-        activeFlight = null;
-        syncBlueprintFromSelections();
-        refreshAllUi();
-    }
+    // =========================================================================
+    // UI REFRESH DISPATCHER
+    // =========================================================================
 
     private void refreshAllUi() {
         MissionContract contract = getActiveContract();
 
         // Top Bar
-        agencyHeaderLabel.setText(String.format(
+        topAgencyStatsLabel.setText(String.format(
                 Locale.US,
-                "Campaign: %d/%d Completed  |  Astronauts Rescued: %d  |  Cargo Delivered: %,.0f kg  |  Agency Reserve: $%,d",
+                "CAMPAIGN: %d/%d COMPLETED  |  ASTRONAUTS RESCUED: %d  |  CARGO: %,.0f kg  |  FUNDS: $%,d",
                 agencyState.getMissionsCompleted(),
                 MissionCatalog.getAllMissions().size(),
                 agencyState.getTotalAstronautsRescued(),
@@ -504,349 +988,208 @@ public class MissionControlScript extends Control {
                 agencyState.getReserveFundsDollars()
         ));
 
-        // Left Column (Mission Briefing)
-        missionCodeLabel.setText(String.format(
-                Locale.US,
-                "[%d/%d] %s",
-                selectedMissionIndex + 1,
-                MissionCatalog.getAllMissions().size(),
-                contract.getCodeName()
-        ));
-        missionTypeLabel.setText("CATEGORY: " + contract.getMissionType().getDisplayName().toUpperCase(Locale.US));
-        missionBriefingLabel.setText(contract.getBriefing());
+        // Left Sidebar Region 1 (Mission Directive)
+        missionCodeLabel.setText(String.format(Locale.US, "[%d/%d] %s", selectedMissionIndex + 1, MissionCatalog.getAllMissions().size(), contract.getCodeName()));
+        missionSummaryLabel.setText(String.format(Locale.US, "%s | Cap: $%,d | Limit: %dd", contract.getMissionType().getDisplayName(), contract.getBudgetLimitDollars(), contract.getDeadlineDays()));
 
-        StringBuilder reqs = new StringBuilder();
-        reqs.append(String.format(Locale.US, "• Required Payload: %s\n", contract.getRequiredPayloadType().getDisplayName()));
-        if (contract.getMinCrewCapacity() > 0) {
-            reqs.append(String.format(Locale.US, "• Min Rescue Seats: %d Astronauts\n", contract.getMinCrewCapacity()));
+        // Left Sidebar Region 2 (Inspector)
+        if (inspectedPart == null) {
+            inspectedPart = blueprint.getPayload();
         }
-        if (contract.getMinCargoMassKg() > 0) {
-            reqs.append(String.format(Locale.US, "• Min Cargo Capacity: %,.0f kg\n", contract.getMinCargoMassKg()));
-        }
-        reqs.append(String.format(Locale.US, "• Target Orbit Altitude: %,.0f km\n", contract.getTargetAltitudeKm()));
-        reqs.append(String.format(Locale.US, "• Required Orbit Delta-V: %,.0f m/s\n\n", contract.getRequiredDeltaVMps()));
-        reqs.append(String.format(Locale.US, "• STRICT BUDGET CAP: $%,d\n", contract.getBudgetLimitDollars()));
-        reqs.append(String.format(Locale.US, "• LAUNCH WINDOW DEADLINE: %d Days\n", contract.getDeadlineDays()));
-        reqs.append(String.format(Locale.US, "• Completion Funding Grant: $%,d\n\n", contract.getRewardDollars()));
-        reqs.append("TIP: Toggle [SURPLUS] on parts to cut cost by 45% and prep time by 50%, or click [Auto-Fit Valid Build] in the top-right!");
-        missionReqsLabel.setText(reqs.toString());
-
-        // Center Column (Part Selector Cards)
-        RocketPart p = blueprint.getPayload();
-        payloadInfoLabel.setText(String.format(
+        PartCondition cond = inspectedPart.getCondition();
+        inspectorTitleLabel.setText(String.format(Locale.US, "%s (%s)", inspectedPart.getName(), cond.getLabel()));
+        inspectorStatsLabel.setText(String.format(
                 Locale.US,
-                "%s\nCost: $%,d  |  Prep: %d d  |  Mass: %,.0f kg\nSeats: %d  |  Cargo: %,.0f kg",
-                p.getName(),
-                p.getCostDollars(),
-                p.getPrepDays(),
-                p.getWetMassKg(),
-                p.getCrewCapacity(),
-                p.getCargoCapacityKg()
+                "Cost: $%,d  |  Prep: %dd  |  Mass: %,.0f kg\n%s",
+                inspectedPart.getCostDollars(),
+                inspectedPart.getPrepDays(),
+                inspectedPart.getWetMassKg(),
+                inspectedPart.getDescription()
         ));
-        payloadConditionBtn.setText(p.getCondition() == PartCondition.SURPLUS_REFURBISHED ? "Mode: SURPLUS (45% Off)" : "Mode: FACTORY NEW");
+        inspectorConditionToggleBtn.setText(cond == PartCondition.SURPLUS_REFURBISHED ? "CONDITION: SURPLUS (45% OFF)" : "CONDITION: FACTORY NEW");
 
-        RocketPart u = blueprint.getUpperStage();
-        if (u == null) {
-            upperStageInfoLabel.setText("None (Single-Stage Configuration)\nCost: $0  |  Prep: 0 d  |  Mass: 0 kg\nAdd an upper stage for high-Delta-V orbits!");
-            upperStageConditionBtn.setText("No Upper Stage");
-            upperStageConditionBtn.setDisabled(true);
-        } else {
-            upperStageInfoLabel.setText(String.format(
-                    Locale.US,
-                    "%s\nCost: $%,d  |  Prep: %d d  |  Isp: %.0f s\nWet: %,.0f kg  |  Stage 2 dV: +%,.0f m/s",
-                    u.getName(),
-                    u.getCostDollars(),
-                    u.getPrepDays(),
-                    u.getIspSeconds(),
-                    u.getWetMassKg(),
-                    blueprint.getUpperStageDeltaVMps()
-            ));
-            upperStageConditionBtn.setDisabled(false);
-            upperStageConditionBtn.setText(u.getCondition() == PartCondition.SURPLUS_REFURBISHED ? "Mode: SURPLUS (45% Off)" : "Mode: FACTORY NEW");
-        }
+        // Left Sidebar Region 3 & 4
+        refreshCategoryTabsUI();
+        rebuildTacticalCardsGrid();
 
-        RocketPart b = blueprint.getBoosterTank();
-        boosterInfoLabel.setText(String.format(
-                Locale.US,
-                "%s\nCost: $%,d  |  Prep: %d d\nFuel: %,.0f kg  |  Dry: %,.0f kg",
-                b.getName(),
-                b.getCostDollars(),
-                b.getPrepDays(),
-                b.getFuelMassKg(),
-                b.getDryMassKg()
-        ));
-        boosterConditionBtn.setText(b.getCondition() == PartCondition.SURPLUS_REFURBISHED ? "Mode: SURPLUS (45% Off)" : "Mode: FACTORY NEW");
+        // Rocket Viewport
+        rebuildSeamlessRocketVisual();
 
-        RocketPart e = blueprint.getMainEngine();
-        engineInfoLabel.setText(String.format(
-                Locale.US,
-                "%s\nCost: $%,d  |  Prep: %d d\nThrust: %,.0f kN  |  Isp: %.0f s",
-                e.getName(),
-                e.getCostDollars(),
-                e.getPrepDays(),
-                e.getThrustKn(),
-                e.getIspSeconds()
-        ));
-        engineConditionBtn.setText(e.getCondition() == PartCondition.SURPLUS_REFURBISHED ? "Mode: SURPLUS (45% Off)" : "Mode: FACTORY NEW");
-
-        updateVisualRocketAppearance();
-        updateVisualFlightShaft(0.0);
-        refreshTelemetryAndFlightControls();
+        // Bottom Telemetry Bar & Launch Buttons
+        refreshBottomTelemetryBar();
+        refreshLaunchButtonsAndLog();
     }
 
-    private void updateVisualRocketAppearance() {
-        RocketPart p = blueprint.getPayload();
-        RocketPart u = blueprint.getUpperStage();
-        RocketPart b = blueprint.getBoosterTank();
-        RocketPart e = blueprint.getMainEngine();
-
-        // Color-code payload by mission role and surplus status
-        if (p.getCondition() == PartCondition.SURPLUS_REFURBISHED) {
-            payloadBodyRect.setColor(color(0.76, 0.52, 0.22, 1.0));
-        } else {
-            payloadBodyRect.setColor(color(0.22, 0.62, 0.94, 1.0));
-        }
-
-        if (u == null) {
-            upperStageBodyRect.setVisible(false);
-        } else {
-            upperStageBodyRect.setVisible(true);
-            upperStageBodyRect.setColor(
-                    u.getCondition() == PartCondition.SURPLUS_REFURBISHED
-                            ? color(0.68, 0.55, 0.32, 1.0)
-                            : color(0.82, 0.86, 0.94, 1.0)
-            );
-        }
-
-        boosterBodyRect.setVisible(true);
-        boosterBodyRect.setColor(
-                b.getCondition() == PartCondition.SURPLUS_REFURBISHED
-                        ? color(0.62, 0.48, 0.30, 1.0)
-                        : color(0.90, 0.92, 0.96, 1.0)
-        );
-
-        engineNozzleRect.setVisible(true);
-        engineNozzleRect.setColor(
-                e.getCondition() == PartCondition.SURPLUS_REFURBISHED
-                        ? color(0.48, 0.34, 0.22, 1.0)
-                        : color(0.30, 0.34, 0.42, 1.0)
-        );
-    }
-
-    private void updateVisualFlightShaft(double delta) {
-        if (activeFlight == null) {
-            rocketVisualRoot.setPosition(new Vector2(745, 368));
-            exhaustFlameRect.setColor(color(1.0, 0.55, 0.10, 0.0));
-            skyBackgroundRect.setColor(color(0.10, 0.24, 0.44, 1.0));
-            shaftTelemetryLabel.setText(String.format(
-                    Locale.US,
-                    "PAD STATUS: STANDBY\nWet Mass: %,.0f kg\nStages: %d\nSurplus Parts: %d",
-                    blueprint.getTotalWetMassKg(),
-                    blueprint.getUpperStage() != null ? 2 : 1,
-                    blueprint.getSurplusPartCount()
-            ));
-            return;
-        }
-
-        double progress = activeFlight.getOverallProgressRatio();
-        // Darken sky from atmospheric blue to space black as rocket climbs
-        double r = 0.10 * (1.0 - progress) + 0.01 * progress;
-        double g = 0.24 * (1.0 - progress) + 0.02 * progress;
-        double b = 0.44 * (1.0 - progress) + 0.06 * progress;
-        skyBackgroundRect.setColor(color(r, g, b, 1.0));
-
-        // Elevate rocket visual from y=368 up to y=160
-        double rocketY = 368.0 - (progress * 195.0);
-        rocketVisualRoot.setPosition(new Vector2(745, rocketY));
-
-        // Hide Stage 1 booster once Stage 2 is burning
-        FlightSimulation.Phase phase = activeFlight.getPhase();
-        boolean stage1Attached = phase == FlightSimulation.Phase.PRE_LAUNCH
-                || phase == FlightSimulation.Phase.STAGE_1_ASCENT
-                || phase == FlightSimulation.Phase.AWAITING_STAGE_SEP;
-        boosterBodyRect.setVisible(stage1Attached);
-        engineNozzleRect.setVisible(stage1Attached);
-
-        // Animate exhaust plume during active burns
-        boolean burning = phase == FlightSimulation.Phase.STAGE_1_ASCENT
-                || phase == FlightSimulation.Phase.UPPER_STAGE_BURN;
-        if (burning) {
-            double flicker = 0.75 + 0.25 * Math.sin(activeFlight.getElapsedSeconds() * 28.0);
-            exhaustFlameRect.setPosition(new Vector2(31, stage1Attached ? 284 : 146));
-            exhaustFlameRect.setColor(color(1.0, 0.60 * flicker, 0.12, 0.95));
-        } else {
-            exhaustFlameRect.setColor(color(1.0, 0.55, 0.10, 0.0));
-        }
-
-        shaftTelemetryLabel.setText(String.format(
-                Locale.US,
-                "%s\nT+%.1fs\nAlt: %,.0f / %,.0f km\ndV: %,.0f / %,.0f m/s",
-                phase.getDisplayName(),
-                activeFlight.getElapsedSeconds(),
-                activeFlight.getCurrentAltitudeKm(),
-                getActiveContract().getTargetAltitudeKm(),
-                activeFlight.getCurrentVelocityMps(),
-                getActiveContract().getRequiredDeltaVMps()
-        ));
-    }
-
-    private void refreshTelemetryAndFlightControls() {
+    private void refreshBottomTelemetryBar() {
         MissionContract contract = getActiveContract();
-        ValidationResult validation = RocketValidator.validate(blueprint, contract);
+        ValidationResult val = RocketValidator.validate(blueprint, contract);
 
-        // 1. Budget Bar
         long cost = blueprint.getTotalCostDollars();
-        long maxBudget = contract.getBudgetLimitDollars();
-        budgetGaugeLabel.setText(String.format(Locale.US, "BUDGET: $%,d / $%,d", cost, maxBudget));
-        updateBar(budgetBarFill, (double) cost / Math.max(1L, maxBudget), validation.isWithinBudget());
+        long maxCost = contract.getBudgetLimitDollars();
+        int prep = blueprint.getTotalPrepDays();
+        int maxPrep = contract.getDeadlineDays();
+        double rel = blueprint.getCombinedReliability() * 100.0;
 
-        // 2. Prep Time Bar
-        int days = blueprint.getTotalPrepDays();
-        int maxDays = contract.getDeadlineDays();
-        timeGaugeLabel.setText(String.format(Locale.US, "PREP TIME: %d Days / %d Days Window", days, maxDays));
-        updateBar(timeBarFill, (double) days / Math.max(1, maxDays), validation.isWithinDeadline());
+        bottomStatsLeftLabel.setText(String.format(
+                Locale.US,
+                "BUDGET: $%,d / $%,d (%s)  |  PREP: %d / %dd (%s)  |  RELIABILITY: %.0f%%",
+                cost, maxCost, val.isWithinBudget() ? "OK" : "OVER",
+                prep, maxPrep, val.isWithinDeadline() ? "OK" : "LATE",
+                rel
+        ));
 
-        // 3. Launch TWR Bar
         double twr = blueprint.getLaunchTwr();
-        twrGaugeLabel.setText(String.format(Locale.US, "LAUNCH TWR: %.2f (Min %.2f)", twr, RocketBlueprint.MIN_SAFE_LAUNCH_TWR));
-        updateBar(twrBarFill, Math.min(1.0, twr / 2.2), validation.isSufficientTwr());
-
-        // 4. Delta-V Bar
         double dv = blueprint.getTotalDeltaVMps();
         double reqDv = contract.getRequiredDeltaVMps();
-        deltaVGaugeLabel.setText(String.format(Locale.US, "TOTAL DELTA-V: %,.0f / %,.0f m/s", dv, reqDv));
-        updateBar(deltaVBarFill, Math.min(1.0, dv / Math.max(1.0, reqDv)), validation.isSufficientDeltaV());
+        double mass = blueprint.getTotalWetMassKg();
 
-        // 5. Reliability & Mass
-        reliabilityGaugeLabel.setText(String.format(
+        bottomStatsRightLabel.setText(String.format(
                 Locale.US,
-                "RELIABILITY: %.0f%%  |  Surplus Parts: %d  |  Wet Mass: %,.0f kg",
-                blueprint.getCombinedReliability() * 100.0,
-                blueprint.getSurplusPartCount(),
-                blueprint.getTotalWetMassKg()
+                "TWR: %.2f (%s)  |  DELTA-V: %,.0f / %,.0f m/s (%s)  |  MASS: %,.0f kg",
+                twr, val.isSufficientTwr() ? "OK" : "LOW",
+                dv, reqDv, val.isSufficientDeltaV() ? "OK" : "DEFICIT",
+                mass
         ));
+    }
+
+    private void refreshLaunchButtonsAndLog() {
+        MissionContract contract = getActiveContract();
+        ValidationResult val = RocketValidator.validate(blueprint, contract);
 
         if (activeFlight == null) {
-            StringBuilder diag = new StringBuilder();
-            if (validation.isValidForMission()) {
-                diag.append("[GO FOR LAUNCH] All engineering, budget, and countdown constraints satisfied!\n");
+            secondaryFlightActionButton.setVisible(false);
+            if (val.isValidForMission()) {
+                launchOrFlightActionButton.setText("LAUNCH ROCKET");
+                launchOrFlightActionButton.setDisabled(false);
             } else {
-                for (String err : validation.getErrors()) {
-                    diag.append("• ").append(err).append("\n");
-                }
+                launchOrFlightActionButton.setText("CANNOT LAUNCH (CHECK CONSTRAINTS)");
+                launchOrFlightActionButton.setDisabled(true);
             }
-            for (String warn : validation.getWarnings()) {
-                diag.append("• ").append(warn).append("\n");
-            }
-            diagnosticsTextLabel.setText(diag.toString());
-
-            launchButton.setDisabled(!validation.isValidForMission());
-            launchButton.setText(validation.isValidForMission() ? "COMMIT & LAUNCH ROCKET" : "CANNOT LAUNCH — FIX ERRORS ABOVE");
-            stageSepButton.setDisabled(true);
-            anomalyOverrideButton.setDisabled(true);
-            resetOrNextButton.setText("RESET ASSEMBLY PAD");
         } else {
             FlightSimulation.Phase phase = activeFlight.getPhase();
-            StringBuilder flightLog = new StringBuilder();
-            flightLog.append("PHASE: ").append(phase.getDisplayName()).append("\n");
-            flightLog.append(String.format(
-                    Locale.US,
-                    "Stage 1 Propellant: %.0f%%  |  Stage 2 Propellant: %.0f%%\n",
-                    activeFlight.getStage1FuelRemainingRatio() * 100.0,
-                    activeFlight.getStage2FuelRemainingRatio() * 100.0
-            ));
-            if (activeFlight.isAnomalyActive()) {
-                flightLog.append(String.format(
-                        Locale.US,
-                        "\n>>> EMERGENCY (%.1fs left): %s\n",
-                        activeFlight.getAnomalyCountdownSeconds(),
-                        activeFlight.getActiveAnomalyMessage()
-                ));
-            } else {
-                flightLog.append("\nLOG: ").append(activeFlight.getStatusLog()).append("\n");
+            switch (phase) {
+                case AWAITING_STAGE_SEP -> {
+                    launchOrFlightActionButton.setText("STAGE SEPARATION >>");
+                    launchOrFlightActionButton.setDisabled(false);
+                }
+                case ORBIT_ACHIEVED -> {
+                    launchOrFlightActionButton.setText("MISSION SUCCESS! ADVANCE >>");
+                    launchOrFlightActionButton.setDisabled(false);
+                }
+                case MISSION_ABORTED -> {
+                    launchOrFlightActionButton.setText("MISSION FAILED — RESET PAD");
+                    launchOrFlightActionButton.setDisabled(false);
+                }
+                default -> {
+                    launchOrFlightActionButton.setText("ASCENT IN PROGRESS...");
+                    launchOrFlightActionButton.setDisabled(true);
+                }
             }
-            diagnosticsTextLabel.setText(flightLog.toString());
 
-            launchButton.setDisabled(true);
-            stageSepButton.setDisabled(phase != FlightSimulation.Phase.AWAITING_STAGE_SEP);
-            anomalyOverrideButton.setDisabled(!activeFlight.isAnomalyActive());
-
-            if (phase == FlightSimulation.Phase.ORBIT_ACHIEVED) {
-                resetOrNextButton.setText("MISSION COMPLETE — ADVANCE TO NEXT MISSION >>");
-            } else if (phase == FlightSimulation.Phase.MISSION_ABORTED) {
-                resetOrNextButton.setText("RETRY MISSION ON LAUNCH PAD");
+            if (activeFlight.isAnomalyActive()) {
+                secondaryFlightActionButton.setVisible(true);
+                secondaryFlightActionButton.setText("! OVERRIDE ANOMALY !");
             } else {
-                resetOrNextButton.setText("ABORT & RETURN TO VAB");
+                secondaryFlightActionButton.setVisible(false);
             }
         }
     }
 
-    private void updateBar(ColorRect barFill, double ratio, boolean isOk) {
-        double clamped = Math.max(0.04, Math.min(1.0, ratio));
-        barFill.setSize(new Vector2(340.0 * clamped, 12.0));
-        barFill.setColor(isOk ? color(0.20, 0.82, 0.45, 1.0) : color(0.92, 0.25, 0.25, 1.0));
+    private void onLaunchOrActionPressed() {
+        if (activeFlight == null) {
+            MissionContract contract = getActiveContract();
+            ValidationResult val = RocketValidator.validate(blueprint, contract);
+            if (!val.isValidForMission()) {
+                return;
+            }
+            missionRewardClaimed = false;
+            activeFlight = new FlightSimulation(blueprint, contract);
+            activeFlight.startLaunch();
+            refreshAllUi();
+        } else {
+            FlightSimulation.Phase phase = activeFlight.getPhase();
+            if (phase == FlightSimulation.Phase.AWAITING_STAGE_SEP) {
+                activeFlight.triggerStageSeparation();
+                refreshAllUi();
+            } else if (phase == FlightSimulation.Phase.ORBIT_ACHIEVED) {
+                selectedMissionIndex = agencyState.getCurrentMissionIndex();
+                activeFlight = null;
+                syncBlueprintFromSelections();
+                refreshAllUi();
+            } else if (phase == FlightSimulation.Phase.MISSION_ABORTED) {
+                activeFlight = null;
+                refreshAllUi();
+            }
+        }
     }
 
-    // ================= UI FACTORY HELPERS =================
-
-    private static Color color(double r, double g, double b, double a) {
-        return new Color(r, g, b, a);
+    private void onSecondaryActionPressed() {
+        if (activeFlight != null && activeFlight.isAnomalyActive()) {
+            activeFlight.resolveAnomaly();
+            refreshAllUi();
+        }
     }
 
-    private static ColorRect createPanel(Control parent, double x, double y, double w, double h, Color bgColor) {
-        ColorRect rect = new ColorRect();
-        rect.setPosition(new Vector2(x, y));
-        rect.setSize(new Vector2(w, h));
-        rect.setColor(bgColor);
-        parent.addChild(rect);
-        return rect;
+    // =========================================================================
+    // UI & GRAPHIC FACTORY HELPERS
+    // =========================================================================
+
+    private static ColorRect createBox(Control parent, double x, double y, double w, double h, Color fill, Color border) {
+        ColorRect box = new ColorRect();
+        box.setPosition(new Vector2(x, y));
+        box.setSize(new Vector2(w, h));
+        box.setColor(fill);
+        parent.addChild(box);
+
+        if (border != null) {
+            // Draw 1px tactical border frame
+            ColorRect top = new ColorRect();
+            top.setPosition(new Vector2(0, 0));
+            top.setSize(new Vector2(w, 1));
+            top.setColor(border);
+            box.addChild(top);
+
+            ColorRect bottom = new ColorRect();
+            bottom.setPosition(new Vector2(0, h - 1));
+            bottom.setSize(new Vector2(w, 1));
+            bottom.setColor(border);
+            box.addChild(bottom);
+
+            ColorRect left = new ColorRect();
+            left.setPosition(new Vector2(0, 0));
+            left.setSize(new Vector2(1, h));
+            left.setColor(border);
+            box.addChild(left);
+
+            ColorRect right = new ColorRect();
+            right.setPosition(new Vector2(w - 1, 0));
+            right.setSize(new Vector2(1, h));
+            right.setColor(border);
+            box.addChild(right);
+        }
+        return box;
     }
 
-    private static Label createStyledLabel(
-            Control parent,
-            String text,
-            double x,
-            double y,
-            double w,
-            double h,
-            int fontSize,
-            Color fontColor) {
-        Label label = new Label();
-        label.setPosition(new Vector2(x, y));
-        label.setSize(new Vector2(w, h));
-        label.setText(text);
-
-        LabelSettings settings = new LabelSettings();
-        settings.setFontSize(fontSize);
-        settings.setFontColor(fontColor);
-        label.setLabelSettings(settings);
-
-        parent.addChild(label);
-        return label;
+    private static Label createLabel(Control parent, String text, double x, double y, double w, double h, int size, Color col) {
+        Label lbl = new Label();
+        lbl.setPosition(new Vector2(x, y));
+        lbl.setSize(new Vector2(w, h));
+        lbl.setText(text);
+        LabelSettings s = new LabelSettings();
+        s.setFontSize(size);
+        s.setFontColor(col);
+        lbl.setLabelSettings(s);
+        parent.addChild(lbl);
+        return lbl;
     }
 
-    private static Label createWrappedLabel(
-            Control parent,
-            String text,
-            double x,
-            double y,
-            double w,
-            double h,
-            int fontSize,
-            Color fontColor) {
-        Label label = createStyledLabel(parent, text, x, y, w, h, fontSize, fontColor);
-        label.setAutowrapMode(TextServer.AutowrapMode.WORD_SMART);
-        return label;
+    private static Label createWrappedLabel(Control parent, String text, double x, double y, double w, double h, int size, Color col) {
+        Label lbl = createLabel(parent, text, x, y, w, h, size, col);
+        lbl.setAutowrapMode(TextServer.AutowrapMode.WORD_SMART);
+        return lbl;
     }
 
-    private static Button createActionButton(
-            Control parent,
-            String text,
-            double x,
-            double y,
-            double w,
-            double h,
-            Runnable onClick) {
+    private static Button createBtn(Control parent, String text, double x, double y, double w, double h, Runnable onClick) {
         Button btn = new Button();
         btn.setPosition(new Vector2(x, y));
         btn.setSize(new Vector2(w, h));
@@ -855,5 +1198,31 @@ public class MissionControlScript extends Control {
         btn.getPressed().connect(LambdaCallable0.create(onClick::run));
         parent.addChild(btn);
         return btn;
+    }
+
+    private static void createPolygon(Control parent, Vector2[] vertices, Color color) {
+        Polygon2D poly = new Polygon2D();
+        poly.setPolygon(new PackedVector2Array(vertices));
+        poly.setColor(color);
+        parent.addChild(poly);
+    }
+
+    private static void createLine(Control parent, Vector2[] vertices, boolean closed, float width, Color color) {
+        Line2D line = new Line2D();
+        line.setPoints(new PackedVector2Array(vertices));
+        line.setClosed(closed);
+        line.setWidth(width);
+        line.setDefaultColor(color);
+        parent.addChild(line);
+    }
+
+    private static void clearContainerChildren(Control container) {
+        if (container == null) {
+            return;
+        }
+        long count = container.getChildCount();
+        for (int i = (int) count - 1; i >= 0; i--) {
+            container.getChild(i).queueFree();
+        }
     }
 }
