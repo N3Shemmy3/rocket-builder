@@ -1,0 +1,93 @@
+:root{color-scheme:dark;--bg:#09020a;--top:#100917;--panel:#130c1b;--panel2:#1d1426;--edge:#302b35;--white:#f6f2ff;--muted:#79737c;--cyan:#00f4d6;--purple:#bd73fa;--orange:#ffae70;--danger:#f3738b}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--white)}body{font-family:'Courier New',monospace;font-size:15px;font-weight:600}.app{max-width:1720px;margin:auto}.topbar{min-height:67px;display:flex;align-items:center;justify-content:space-between;padding:12px 3%;background:#0e0814;gap:18px}.brand>div{font-size:16px}.brand small{display:block;color:var(--muted);font-size:12px;margin-top:6px;white-space:normal}.top-actions{display:flex;gap:12px;flex-wrap:wrap}button{font:inherit;color:var(--white);background:transparent;border:2px solid var(--edge);padding:8px 11px;cursor:pointer}button:hover,button:focus-visible{border-color:var(--purple);outline:none}button:active{transform:translateY(1px)}.dashboard{display:grid;grid-template-columns:minmax(290px,1fr) minmax(465px,1.75fr) minmax(310px,1.03fr);gap:3%;padding:35px 3% 40px;min-height:815px}.mission-column,.telemetry-column{display:flex;flex-direction:column;gap:30px}.panel{border:2px solid var(--edge);padding:16px}.panel h2,.panel-flat h2{margin:0;font-size:17px;color:var(--cyan)}.directive{min-height:90px}.directive p{margin:16px 0 0}.description{min-height:235px}.text-label{font-size:13px;letter-spacing:.5px}.purple{color:var(--purple)}.description>p:nth-child(2){font-weight:400;margin-top:30px;line-height:1.22;white-space:pre-line}.constraints{flex:1;min-height:370px;padding:24px 11px 16px}.constraints h2{text-align:center}.constraints ul{list-style:none;padding:0;margin:30px 0}.constraints li{white-space:pre-wrap;line-height:1.28;font-weight:400}.constraints li::before{content:'• '}.constraints li.spacer{height:38px}.constraints li.spacer::before{content:''}.tip{font-weight:400;line-height:1.23;margin-top:20px}.build-column{position:relative;min-width:0}.upper-build{display:flex;align-items:start;gap:30px;height:259px;position:relative}.pad-status{min-width:220px;min-height:220px;background:var(--panel);padding:22px 18px;font-size:14px;z-index:1}.pad-status p{margin:0 0 20px}.rocket-stage{position:absolute;inset:20px 0 0 0;display:flex;justify-content:center;pointer-events:none}.rocket-stage svg{height:700px;width:400px;max-width:80%;overflow:visible;filter:drop-shadow(0 0 5px #886aa038);opacity:.88}.launch-flame{display:none}.assembly-title{position:relative;width:220px;max-width:100%;height:36px;border:2px solid var(--edge);display:grid;place-items:center;color:var(--cyan);font-size:18px;background:var(--bg)}.assembly-bottom{display:flex;align-items:flex-start;gap:12px;margin-top:53px;position:relative}.slots{display:grid;grid-template-columns:repeat(2,96px);gap:28px 26px;flex:none}.slot{height:117px;width:96px;background:rgba(9,2,10,.75);border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;padding:4px;overflow:hidden}.slot.selected{border-color:var(--purple)}.slot svg{width:75px;height:96px}.slot:hover{background:#21132c}.part-inspector{min-width:260px;max-width:340px;width:100%;background:#1b1225;align-self:flex-start}.inspector-heading{background:#b76df1;color:#fff;font-size:21px;padding:8px 10px;font-weight:900;white-space:nowrap}.inspector-inner{padding:18px 12px 12px}.inspector-inner h3{font-size:17px;color:var(--cyan);margin:0 0 14px}.inspector-inner p{margin:0;line-height:1.15;font-size:14px}.mode-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}.mode-row button{border:none;color:var(--purple);padding:0;font-size:13px}.mode-row button:hover{text-decoration:underline}.inspector-help{color:var(--muted);margin-top:12px!important}.panel-flat{background:var(--panel)}.metrics{height:306px;padding:28px 18px;display:flex;flex-direction:column;justify-content:space-between}.metric label{display:flex;justify-content:space-between;font-size:15px;font-weight:400;margin-bottom:8px}.metric label span{color:var(--purple);font-size:12px}.meter{background:#262626;height:12px;overflow:hidden}.meter span{display:block;height:100%;width:0;background:var(--cyan);transition:width .25s}.meter span.over{background:var(--danger)}.summary{padding:11px 16px;font-size:13px;min-height:72px}.summary p{margin:0 0 8px}.summary p:last-child{margin:0}.telemetry{padding:20px 18px;min-height:205px}.telemetry h2{color:var(--purple);text-align:center}.telemetry p{margin-top:32px;font-size:14px;line-height:1.25}.launch-button{background:var(--panel);border:none;color:var(--cyan);font-size:25px;font-weight:900;min-height:67px}.launch-button:hover{background:#251530;border:none}.reset-button{font-size:12px;color:var(--muted);align-self:flex-end;border:0;padding:0}.reset-button:hover{color:var(--white);border:0}.launched .rocket-stage svg{animation:lift 2.3s ease-in forwards}.launched .launch-button{color:var(--purple)}@keyframes lift{to{transform:translateY(-460px);opacity:0}}@media(max-width:1190px){.dashboard{grid-template-columns:1fr 1.5fr;gap:24px}.telemetry-column{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:18px}.metrics{grid-row:span 3}.description{min-height:200px}.rocket-stage{justify-content:flex-end}.rocket-stage svg{width:300px}.part-inspector{min-width:220px}.slots{grid-template-columns:repeat(2,76px);gap:18px}.slot{width:76px;height:94px}}@media(max-width:750px){.topbar{align-items:start;flex-direction:column}.dashboard{display:block;padding:20px 16px}.mission-column,.telemetry-column{gap:14px}.build-column{margin:25px 0 35px;min-height:650px}.upper-build{height:250px}.rocket-stage{justify-content:center}.rocket-stage svg{width:280px}.pad-status{min-width:165px;padding:14px 11px;min-height:175px;font-size:12px}.assembly-bottom{gap:12px;margin-top:35px}.slots{grid-template-columns:repeat(2,minmax(64px,76px));gap:12px}.slot{width:100%;height:95px}.part-inspector{min-width:0}.inspector-heading{font-size:15px;white-space:normal}.inspector-inner{padding:12px 8px}.inspector-inner h3{font-size:14px}.inspector-inner p{font-size:12px}.telemetry-column{display:flex}.metrics{height:280px}.description,.constraints{min-height:unset}}
+
+/* Persistent component catalog and hover/focus-only part details */
+.assembly-bottom{display:block;position:relative;z-index:2}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;max-width:440px}
+.part-card{background:rgba(16,9,23,.95);border:2px solid var(--edge);min-width:0;display:flex;flex-direction:column}
+.part-card.installed{border-color:var(--cyan)}
+.part-card:hover,.part-card:focus-within{border-color:var(--purple);background:#21132c}
+.part-card .slot{border:0;background:none;width:100%;height:145px;padding:4px;display:flex;flex-direction:column;gap:2px;justify-content:center;align-items:center;overflow:visible}
+.part-card .slot:hover,.part-card .slot:focus-visible{border:0;background:transparent}
+.part-card .slot svg{height:86px;width:70px;flex:none;max-width:100%}
+.part-code{font-size:12px;color:var(--white)}
+.part-state{font-size:10px;color:var(--muted)}
+.part-card.installed .part-state{color:var(--cyan)}
+.part-mode{border:0;border-top:1px solid var(--edge);padding:6px 3px;color:var(--purple);font-size:11px;width:100%;background:#120b1b}
+.part-mode[aria-pressed="true"]{color:var(--orange)}
+.part-mode:hover,.part-mode:focus-visible{border:0;border-top:1px solid var(--purple)}
+.part-inspector{position:fixed;z-index:1000;left:0;top:0;width:275px;max-width:calc(100vw - 24px);min-width:0;pointer-events:none;opacity:0;visibility:hidden;box-shadow:0 10px 36px #000a;border:1px solid var(--purple)}
+.part-inspector.visible{opacity:1;visibility:visible}
+.part-inspector .inspector-heading{font-size:16px;white-space:normal}
+.part-inspector .inspector-inner{padding:12px}
+.part-inspector .inspector-inner h3{font-size:14px}
+.part-inspector .inspector-inner p{font-size:12px;line-height:1.4}
+.part-inspector .inspector-help{margin-top:12px!important}
+@media(max-width:1190px){.slots{grid-template-columns:repeat(3,minmax(0,1fr));max-width:100%}.part-card .slot{height:130px}}
+@media(max-width:750px){.build-column{min-height:750px}.slots{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.part-card .slot{height:116px}.part-card .slot svg{height:63px}.part-code{font-size:10px}.part-state{font-size:9px}.part-mode{font-size:10px}}
+
+/* Four illustrated flight backdrops, drawn in inline SVG (no image assets). */
+.build-column{isolation:isolate}
+.flight-scene{position:absolute;top:0;left:0;right:0;height:560px;overflow:hidden;z-index:-1;border:1px solid #453d59;background:#14182c;pointer-events:none}
+.flight-backdrop{display:block;width:100%;height:100%}
+.world{opacity:0;transition:opacity 1.4s ease-in-out}
+.flight-scene[data-phase="pad"] .world-pad,
+.flight-scene[data-phase="sky"] .world-sky,
+.flight-scene[data-phase="space"] .world-space,
+.flight-scene[data-phase="moon"] .world-moon{opacity:1}
+.flight-hud{position:absolute;top:9px;left:10px;right:10px;display:flex;justify-content:space-between;gap:10px;color:#c9f2f2;font-size:11px;letter-spacing:1px;text-shadow:0 1px 5px #000,0 1px 3px #000;background:#0b0d1a85;padding:6px 8px}
+.flight-progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:#06070c9e}
+.flight-progress span{display:block;width:0;height:100%;background:var(--cyan);transition:width .1s linear}
+.pad-status{background:#110e22dd;backdrop-filter:blur(3px)}
+.assembly-title{background:#100b1eef}
+.rocket-stage{z-index:0;overflow:hidden;inset:45px 0 auto 0;height:460px;align-items:flex-start}
+.rocket-stage svg{height:440px;width:270px;max-width:65%;filter:drop-shadow(0 0 10px #000a);transition:none;transform-origin:50% 60%}
+.assembly-bottom{z-index:2}
+.flight-active .rocket-stage svg{filter:drop-shadow(0 0 9px #b8e9ff8c)}
+.flight-active .launch-flame{display:block;position:absolute;top:350px;left:calc(50% - 10px);width:20px;height:80px;background:linear-gradient(#fff6c0,#f5a061 45%,transparent);clip-path:polygon(25% 0%,75% 0%,100% 35%,50% 100%,0 35%);animation:thrustpulse .18s infinite alternate;opacity:.9}
+@keyframes thrustpulse{to{height:110px;opacity:.65}}
+/* Override old instant fly-away effect: rocket remains visible as scenery changes. */
+.launched .rocket-stage svg{animation:none}
+@media(max-width:750px){.flight-scene{height:510px}.rocket-stage{height:440px}.rocket-stage svg{height:400px;width:255px}}
+@media(prefers-reduced-motion:reduce){.world{transition:none}.flight-active .launch-flame{animation:none}}
+
+/* Dedicated, non-overlapping layout: metrics strip, rocket viewport, catalog. */
+.dashboard{grid-template-columns:minmax(260px,1fr) minmax(360px,1.65fr) minmax(270px,1fr);gap:clamp(15px,2vw,34px)}
+.build-column{display:flex;flex-direction:column;gap:12px;min-height:0;isolation:isolate}
+.upper-build{order:0;display:block;position:relative;height:auto;min-height:0}
+.pad-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;min-width:0;min-height:0;padding:10px 12px;background:var(--panel);font-size:12px;position:static}
+.pad-status p{margin:0;min-width:0}
+.flight-scene{order:1;position:relative;inset:auto;flex:none;isolation:isolate;height:clamp(340px,37vw,480px);min-height:0;overflow:hidden;z-index:auto;border:2px solid var(--edge)}
+.flight-backdrop{position:absolute;inset:0;z-index:0}
+.flight-hud{z-index:3}
+.flight-progress{z-index:3}
+.rocket-stage{position:absolute;inset:35px 0 12px;z-index:1;display:flex;align-items:center;justify-content:center;height:auto;overflow:hidden;pointer-events:none}
+.rocket-stage svg{display:block;width:auto;height:min(100%,420px);max-height:100%;max-width:85%;overflow:hidden}
+.flight-active .launch-flame{top:auto;bottom:5%;left:calc(50% - 10px)}
+.assembly-title{order:2;width:100%;height:37px;flex:none;max-width:none}
+.assembly-bottom{order:3;margin-top:0;position:relative;width:100%;z-index:auto}
+.slots{width:100%;max-width:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.part-card .slot{height:118px}
+.part-card .slot svg{height:72px}
+.part-inspector{z-index:1000}
+@media(max-width:1190px){
+ .dashboard{grid-template-columns:minmax(240px,1fr) minmax(330px,1.5fr);gap:20px}
+ .rocket-stage{justify-content:center}
+ .rocket-stage svg{height:min(100%,420px);width:auto;max-width:85%}
+ .slots{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:750px){
+ .dashboard{display:flex;flex-direction:column;padding:18px 14px;gap:20px}
+ .build-column{margin:0;min-height:0}
+ .upper-build{height:auto}
+ .pad-status{font-size:11px}
+ .flight-scene{height:clamp(320px,90vw,470px)}
+ .rocket-stage{inset:36px 0 12px;height:auto}
+ .rocket-stage svg{height:min(100%,400px);width:auto}
+ .slots{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .part-card .slot{height:110px}
+ .part-card .slot svg{height:64px}
+}
+
+/* Continuous vertical world: no crossfades or phase visibility switching. */
+.flight-scene .world{opacity:1!important;transition:none!important}
+.flight-scene .flight-backdrop{will-change:auto}
