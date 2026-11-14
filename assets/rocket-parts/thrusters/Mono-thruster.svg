@@ -1,0 +1,18 @@
+<svg width="44" height="51" viewBox="0 0 44 51" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect x="0.5" y="1.5" width="43" height="27" rx="0.5" fill="black" stroke="#F0F0F0"/>
+<path d="M7 29C2.5 29 43.5 29 39 29C34.5 29 39 41 39 41H7C7 41 11.5 29 7 29Z" fill="black"/>
+<mask id="stroke0_93_387" fill="white">
+<path d="M7 29C2.5 29 43.5 29 39 29C34.5 29 39 41 39 41H7C7 41 11.5 29 7 29Z"/>
+</mask>
+<path d="M7 29C2.5 29 43.5 29 39 29C34.5 29 39 41 39 41H7C7 41 11.5 29 7 29Z" stroke-width="2" stroke="#F0F0F0" mask="url(#stroke0_93_387)"/>
+<use xlink:href="#stroke1_93_387" fill="black"/>
+<mask id="stroke2_93_387" fill="white">
+<use xlink:href="#stroke1_93_387"/>
+</mask>
+<path d="M26 42C25.574 42 20.067 42 18.446 42C18.1603 42 17.8914 42.1221 17.7017 42.3356L11.4794 49.3356C10.9062 49.9805 11.364 51 12.2268 51H31.865C32.7128 51 33.1762 50.0154 32.6295 49.3674C30.4408 46.7732 26.3641 42 26 42Z" stroke-width="2" stroke="#F0F0F0" mask="url(#stroke2_93_387)"/>
+<path d="M15 0.5C15 0.223858 15.2239 0 15.5 0H28.5C28.7761 0 29 0.223858 29 0.5V1H15V0.5Z" fill="#F0F0F0"/>
+<rect x="10" y="9" width="24" height="12" rx="1" fill="#F0F0F0"/>
+<defs>
+<path id="stroke1_93_387" d="M17.7017 42.3356C17.8914 42.1221 18.1603 42 18.446 42C20.067 42 25.574 42 26 42C26.3641 42 30.4408 46.7732 32.6295 49.3674C33.1762 50.0154 32.7128 51 31.865 51H12.2268C11.364 51 10.9062 49.9805 11.4794 49.3356L17.7017 42.3356Z"/>
+</defs>
+</svg>

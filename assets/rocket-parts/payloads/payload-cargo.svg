@@ -1,0 +1,14 @@
+<svg width="44" height="78" viewBox="0 0 44 78" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<use xlink:href="#stroke0_93_422" fill="black"/>
+<mask id="stroke1_93_422" fill="white">
+<use xlink:href="#stroke0_93_422"/>
+</mask>
+<path d="M0.999999 75.4838H43C43.5523 75.4838 44 75.0361 44 74.4838V4C44 1.79086 42.2091 0 40 0H4C1.79086 0 0 1.79086 0 4V74.4838C0 75.0361 0.447714 75.4838 0.999999 75.4838Z" stroke-width="2" stroke="#F0F0F0" mask="url(#stroke1_93_422)"/>
+<path d="M0 6H44V7H0V6Z" fill="#F0F0F0"/>
+<path d="M15 75.4844H29V75.9844C29 76.2605 28.7761 76.4844 28.5 76.4844H15.5C15.2239 76.4844 15 76.2605 15 75.9844V75.4844Z" fill="black"/>
+<path d="M15 75.4844H29V75.9844C29 76.2605 28.7761 76.4844 28.5 76.4844H15.5C15.2239 76.4844 15 76.2605 15 75.9844V75.4844Z" fill="#F0F0F0"/>
+<rect x="11" y="39" width="22" height="22" rx="1" fill="#F0F0F0"/>
+<defs>
+<path id="stroke0_93_422" d="M0 4C0 1.79086 1.79086 0 4 0H40C42.2091 0 44 1.79086 44 4V74.4838C44 75.0361 43.5523 75.4838 43 75.4838H0.999999C0.447714 75.4838 0 75.0361 0 74.4838V4Z"/>
+</defs>
+</svg>
