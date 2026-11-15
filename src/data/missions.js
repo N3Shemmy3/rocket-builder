@@ -13,6 +13,9 @@ export const MISSIONS = [
     prep: 12,
     deadline: 12,
     grant: 1200000,
+    orbitalRegime: 'LEO (400 km, 51.6° inc)',
+    nasaAnalog: 'NASA Commercial Resupply Services (CRS-2 / Cygnus & Dragon)',
+    nasaDataset: 'ISS Trajectory & Mass Balance Log (NASA Open Data)',
   },
   {
     id: 'OP-02',
@@ -28,6 +31,9 @@ export const MISSIONS = [
     prep: 14,
     deadline: 14,
     grant: 1800000,
+    orbitalRegime: 'Trans-Lunar Injection / NRHO (1,500–70,000 km)',
+    nasaAnalog: 'Artemis Lunar Gateway & LCRD Relay Architecture',
+    nasaDataset: 'JPL Horizons Ephemeris & Cislunar Delta-V Budget',
   },
   {
     id: 'OP-03',
@@ -43,6 +49,9 @@ export const MISSIONS = [
     prep: 12,
     deadline: 12,
     grant: 1400000,
+    orbitalRegime: 'Sun-Synchronous Orbit (700 km Polar)',
+    nasaAnalog: 'NASA Earth System Observatory (EOS Aura / PACE)',
+    nasaDataset: 'NASA Earthdata & Launch Services Program (LSP) Performance',
   },
   {
     id: 'OP-04',
@@ -58,6 +67,9 @@ export const MISSIONS = [
     prep: 10,
     deadline: 10,
     grant: 2400000,
+    orbitalRegime: 'LEO High-Inclination Rendezvous (420 km)',
+    nasaAnalog: 'NASA Commercial Crew Program (CCP) Contingency Return',
+    nasaDataset: 'NASA Human Spaceflight Architecture & Crew Safety Margins',
   },
   {
     id: 'OP-05',
@@ -73,5 +85,8 @@ export const MISSIONS = [
     prep: 16,
     deadline: 16,
     grant: 3000000,
+    orbitalRegime: 'High-Energy Orbital Logistics (800 km)',
+    nasaAnalog: 'Artemis CLPS & Deep Space Logistics Heavy Cargo',
+    nasaDataset: 'NASA NSSDCA Launch Vehicle Heavy Payload Catalog',
   },
 ];

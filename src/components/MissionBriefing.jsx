@@ -1,6 +1,11 @@
 import { fmt, money } from '../utils/format';
 
-export function MissionBriefing({ mission, missionIndex, totalMissions }) {
+export function MissionBriefing({
+  mission,
+  missionIndex,
+  totalMissions,
+  onOpenNasaCodex,
+}) {
   return (
     <section className="mission-column" aria-label="Mission briefing">
       <div className="panel directive">
@@ -14,6 +19,17 @@ export function MissionBriefing({ mission, missionIndex, totalMissions }) {
           CATEGORY: {mission.category}
         </p>
         <p id="mission-description">{mission.description}</p>
+        <div className="mission-nasa-tag">
+          <span>ORBIT: {mission.orbitalRegime}</span>
+          <span>NASA ANALOG: {mission.nasaAnalog}</span>
+          <button
+            type="button"
+            className="mission-codex-link"
+            onClick={onOpenNasaCodex}
+          >
+            Open NASA Dataset Reference &gt;
+          </button>
+        </div>
       </div>
       <div className="panel constraints">
         <h2>CONTRACT CONSTRAINTS &amp; TARGETS</h2>

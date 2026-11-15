@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { fmt } from '../utils/format';
 import { RocketSvg } from './RocketSvg';
 
 export function FlightScene({ flight, installed }) {
+  const [blueprintMode, setBlueprintMode] = useState('blueprint');
   const progressPercent = Math.min(100, Math.max(0, flight.progress * 100));
 
   return (
@@ -163,10 +165,27 @@ export function FlightScene({ flight, installed }) {
       </svg>
       <div className="flight-hud">
         <span id="flight-phase">{flight.phaseLabel}</span>
-        <span id="flight-altitude">ALT {fmt(flight.altitude)} KM</span>
+        <div className="flight-hud-right">
+          <button
+            type="button"
+            className="hud-view-toggle"
+            onClick={() =>
+              setBlueprintMode((prev) =>
+                prev === 'blueprint' ? 'cad' : 'blueprint'
+              )
+            }
+          >
+            VIEW: {blueprintMode === 'blueprint' ? 'BLUEPRINT' : 'CAD'}
+          </button>
+          <span id="flight-altitude">ALT {fmt(flight.altitude)} KM</span>
+        </div>
       </div>
       <div className="rocket-stage" aria-label="Rocket preview">
-        <RocketSvg installed={installed} transform={flight.rocketTransform} />
+        <RocketSvg
+          installed={installed}
+          transform={flight.rocketTransform}
+          blueprintMode={blueprintMode}
+        />
         <div className="launch-flame" aria-hidden="true" />
       </div>
       <div className="flight-progress">

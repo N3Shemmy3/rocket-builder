@@ -10,6 +10,9 @@ export const PARTS = {
     seats: 0,
     dv: 0,
     thrust: 0,
+    nasaAnalog: 'Cygnus PCM / Dragon 2 Pressurized Capsule',
+    propellant: 'N2O4 / MMH Thrusters',
+    powerKw: 3.5,
   },
   tank: {
     type: 'FUEL TANK',
@@ -22,6 +25,9 @@ export const PARTS = {
     seats: 0,
     dv: 6800,
     thrust: 0,
+    nasaAnalog: 'Centaur V / Falcon 9 Common Dome Al-Li Tank',
+    propellant: 'LOX / RP-1 (22,000 kg capacity)',
+    dryMass: 2500,
   },
   engine: {
     type: 'ENGINE',
@@ -34,6 +40,9 @@ export const PARTS = {
     seats: 0,
     dv: 2800,
     thrust: 540000,
+    nasaAnalog: 'RS-25 / Merlin 1D Sea-Level Class',
+    isp: '311s (SL) / 348s (Vac)',
+    propellant: 'LOX / RP-1 Turbopump',
   },
   avionics: {
     type: 'GUIDANCE',
@@ -46,6 +55,9 @@ export const PARTS = {
     seats: 0,
     dv: 0,
     thrust: 0,
+    nasaAnalog: 'NASA Orion Fault-Tolerant Flight Computer',
+    isp: 'N/A',
+    propellant: 'Redundant MIL-STD-1553 Bus',
   },
   stabilizer: {
     type: 'STABILIZER',
@@ -58,6 +70,9 @@ export const PARTS = {
     seats: 0,
     dv: 0,
     thrust: 0,
+    nasaAnalog: 'Titanium Grid / Aero Fin Actuators',
+    isp: 'N/A',
+    propellant: 'Hydraulic Cold-Gas TVC',
   },
   fairing: {
     type: 'FAIRING',
@@ -70,6 +85,9 @@ export const PARTS = {
     seats: 0,
     dv: 0,
     thrust: 0,
+    nasaAnalog: '5m Composite Acoustic Payload Shroud',
+    isp: 'N/A',
+    propellant: 'Pneumatic Separation System',
   },
 };
 

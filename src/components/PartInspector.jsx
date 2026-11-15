@@ -70,6 +70,10 @@ export function PartInspector({
               Status: {installed ? 'INSTALLED' : 'AVAILABLE'}
               <br />
               Mode: {surplus ? 'SURPLUS' : 'FACTORY NEW'}
+              <br />
+              NASA Ref: {part.nasaAnalog}
+              <br />
+              System: {part.propellant}
             </p>
             <p className="inspector-help">
               Click the part to {installed ? 'remove' : 'install'} it. Use
