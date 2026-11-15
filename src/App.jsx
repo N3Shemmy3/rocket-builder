@@ -65,6 +65,19 @@ export function App() {
   const [showNasaModal, setShowNasaModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  const [isLeftDockCollapsed, setIsLeftDockCollapsed] = useState(false);
+  const [isRightDockCollapsed, setIsRightDockCollapsed] = useState(false);
+  const [isBayCollapsed, setIsBayCollapsed] = useState(false);
+  const [openLeftPanels, setOpenLeftPanels] = useState({
+    tracker: true,
+    telemetry: true,
+    launch: true,
+  });
+  const [openRightPanels, setOpenRightPanels] = useState({
+    directive: true,
+    constraints: true,
+  });
+
   const mission = MISSIONS[missionIdx];
   const { flight, playFlight, resetFlight } = useFlightAnimation(mission);
 
@@ -89,6 +102,47 @@ export function App() {
     () => computeRocketStats(installed, surplus),
     [installed, surplus]
   );
+
+  const launchIssues = useMemo(
+    () => validateLaunch(installed, stats, mission),
+    [installed, stats, mission]
+  );
+
+  const toggleLeftPanel = useCallback((key) => {
+    setOpenLeftPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const toggleRightPanel = useCallback((key) => {
+    setOpenRightPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const allLeftPanelsOpen = Object.values(openLeftPanels).every(Boolean);
+  const toggleAllLeftPanels = useCallback(() => {
+    const nextOpen = !allLeftPanelsOpen;
+    setOpenLeftPanels({
+      tracker: nextOpen,
+      telemetry: nextOpen,
+      launch: nextOpen,
+    });
+  }, [allLeftPanelsOpen]);
+
+  const allRightPanelsOpen = Object.values(openRightPanels).every(Boolean);
+  const toggleAllRightPanels = useCallback(() => {
+    const nextOpen = !allRightPanelsOpen;
+    setOpenRightPanels({
+      directive: nextOpen,
+      constraints: nextOpen,
+    });
+  }, [allRightPanelsOpen]);
+
+  const allWorkspaceCollapsed =
+    isLeftDockCollapsed && isRightDockCollapsed && isBayCollapsed;
+  const toggleMaximizeScene = useCallback(() => {
+    const nextCollapsed = !allWorkspaceCollapsed;
+    setIsLeftDockCollapsed(nextCollapsed);
+    setIsRightDockCollapsed(nextCollapsed);
+    setIsBayCollapsed(nextCollapsed);
+  }, [allWorkspaceCollapsed]);
 
   const resetLaunchState = useCallback(
     (missionOverride) => {
@@ -313,13 +367,105 @@ export function App() {
             }}
             onOpenLogout={() => setShowLogoutModal(true)}
           />
-          <main className="dashboard">
-            <MissionBriefing
-              mission={mission}
-              missionIndex={missionIdx}
-              totalMissions={MISSIONS.length}
-              onOpenNasaCodex={() => setShowNasaModal(true)}
-            />
+          <main
+            className={`dashboard${
+              isLeftDockCollapsed ? ' left-dock-collapsed' : ''
+            }${isRightDockCollapsed ? ' right-dock-collapsed' : ''}${
+              isBayCollapsed ? ' bay-collapsed' : ''
+            }`}
+          >
+            <aside
+              className={`side-dock left-dock${isLeftDockCollapsed ? ' is-collapsed' : ''}`}
+              aria-label="Mission telemetry and launch controls"
+            >
+              {isLeftDockCollapsed ? (
+                <div className="side-dock-rail">
+                  <button
+                    type="button"
+                    className="dock-rail-expand-btn"
+                    onClick={() => setIsLeftDockCollapsed(false)}
+                    aria-label="Expand telemetry and launch panels"
+                    title="Expand left panels"
+                  >
+                    &raquo;
+                  </button>
+                  <span
+                    className={`dock-rail-status ${
+                      launched
+                        ? 'is-launched'
+                        : launchIssues.length === 0
+                          ? 'is-ready'
+                          : 'is-not-ready'
+                    }`}
+                    title={
+                      launched
+                        ? 'Flight in progress'
+                        : launchIssues.length === 0
+                          ? 'Ready for launch'
+                          : `Not ready: ${launchIssues[0]}`
+                    }
+                  >
+                    {launched ? 'FLT' : launchIssues.length === 0 ? 'GO' : 'HOLD'}
+                  </span>
+                  <span className="dock-rail-label">TELEMETRY</span>
+                  {allWorkspaceCollapsed && (
+                    <button
+                      type="button"
+                      className="dock-rail-restore-btn"
+                      onClick={toggleMaximizeScene}
+                      title="Restore all panels"
+                      aria-label="Restore all panels"
+                    >
+                      ALL
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="side-dock-bar">
+                    <button
+                      type="button"
+                      className="dock-bar-btn dock-bar-collapse"
+                      onClick={() => setIsLeftDockCollapsed(true)}
+                      aria-label="Collapse left panel dock"
+                      title="Collapse left sidebar"
+                    >
+                      &laquo;
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-bar-btn"
+                      onClick={toggleAllLeftPanels}
+                    >
+                      {allLeftPanelsOpen ? 'COLLAPSE' : 'EXPAND'}
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-bar-btn dock-bar-accent"
+                      onClick={toggleMaximizeScene}
+                      title="Collapse all panels for largest rocket scene"
+                    >
+                      {allWorkspaceCollapsed ? 'RESTORE ALL' : 'MAX SCENE'}
+                    </button>
+                  </div>
+                  <div className="side-dock-scroll">
+                    <TelemetryColumn
+                      mission={mission}
+                      stats={stats}
+                      surplusCount={stats.reusedCount}
+                      telemetryLog={telemetryLog}
+                      launched={launched}
+                      launchIssues={launchIssues}
+                      onLaunch={handleLaunch}
+                      onReset={handleReset}
+                      openPanels={openLeftPanels}
+                      onTogglePanel={toggleLeftPanel}
+                    />
+                  </div>
+                </>
+              )}
+            </aside>
+
             <BuildColumn
               mission={mission}
               launched={launched}
@@ -327,18 +473,83 @@ export function App() {
               flight={flight}
               installedSet={installed}
               surplusSet={surplus}
+              isBayCollapsed={isBayCollapsed}
+              onToggleBay={() => setIsBayCollapsed((prev) => !prev)}
               onSetInstalled={handleSetInstalled}
               onToggleSurplus={handleToggleSurplus}
               onTelemetryLog={setTelemetryLog}
             />
-            <TelemetryColumn
-              mission={mission}
-              stats={stats}
-              surplusCount={stats.reusedCount}
-              telemetryLog={telemetryLog}
-              onLaunch={handleLaunch}
-              onReset={handleReset}
-            />
+
+            <aside
+              className={`side-dock right-dock${isRightDockCollapsed ? ' is-collapsed' : ''}`}
+              aria-label="Mission briefing panels"
+            >
+              {isRightDockCollapsed ? (
+                <div className="side-dock-rail">
+                  <button
+                    type="button"
+                    className="dock-rail-expand-btn"
+                    onClick={() => setIsRightDockCollapsed(false)}
+                    aria-label="Expand mission briefing panels"
+                    title="Expand right panels"
+                  >
+                    &laquo;
+                  </button>
+                  <span className="dock-rail-mission-id">{mission.id}</span>
+                  <span className="dock-rail-label">BRIEFING</span>
+                  {allWorkspaceCollapsed && (
+                    <button
+                      type="button"
+                      className="dock-rail-restore-btn"
+                      onClick={toggleMaximizeScene}
+                      title="Restore all panels"
+                      aria-label="Restore all panels"
+                    >
+                      ALL
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="side-dock-bar">
+                    <button
+                      type="button"
+                      className="dock-bar-btn"
+                      onClick={toggleAllRightPanels}
+                    >
+                      {allRightPanelsOpen ? 'COLLAPSE' : 'EXPAND'}
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-bar-btn dock-bar-accent"
+                      onClick={toggleMaximizeScene}
+                      title="Collapse all panels for largest rocket scene"
+                    >
+                      {allWorkspaceCollapsed ? 'RESTORE ALL' : 'MAX SCENE'}
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-bar-btn dock-bar-collapse"
+                      onClick={() => setIsRightDockCollapsed(true)}
+                      aria-label="Collapse right panel dock"
+                      title="Collapse right sidebar"
+                    >
+                      &raquo;
+                    </button>
+                  </div>
+                  <div className="side-dock-scroll">
+                    <MissionBriefing
+                      mission={mission}
+                      missionIndex={missionIdx}
+                      totalMissions={MISSIONS.length}
+                      onOpenNasaCodex={() => setShowNasaModal(true)}
+                      openPanels={openRightPanels}
+                      onTogglePanel={toggleRightPanel}
+                    />
+                  </div>
+                </>
+              )}
+            </aside>
           </main>
         </div>
       )}

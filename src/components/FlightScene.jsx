@@ -9,6 +9,9 @@ function DestinationScenery({ sceneType }) {
     <g className="world world-moon" transform="translate(0 0)">
       {/* Common deep-space starfield */}
       <g fill="#d2d5e5">
+        <circle cx="-360" cy="110" r="1.8" />
+        <circle cx="-220" cy="240" r="1.5" />
+        <circle cx="-90" cy="70" r="2" />
         <circle cx="55" cy="83" r="2" />
         <circle cx="206" cy="122" r="2" />
         <circle cx="433" cy="65" r="2" />
@@ -19,6 +22,9 @@ function DestinationScenery({ sceneType }) {
         <circle cx="96" cy="186" r="1.4" />
         <circle cx="312" cy="48" r="1.8" />
         <circle cx="498" cy="118" r="1.5" />
+        <circle cx="680" cy="95" r="2" />
+        <circle cx="810" cy="230" r="1.6" />
+        <circle cx="950" cy="145" r="1.8" />
       </g>
 
       {sceneType === 'station' && (
@@ -143,11 +149,11 @@ function DestinationScenery({ sceneType }) {
           </g>
           {/* Cratered Lunar Horizon */}
           <path
-            d="M0 487L100 465L167 477L273 433L369 472L450 449L532 469L600 437V620H0Z"
+            d="M-1500 487L-800 455L-350 478L0 487L100 465L167 477L273 433L369 472L450 449L532 469L600 437L1050 468L1550 445L2100 482V620H-1500Z"
             fill="#777581"
           />
           <path
-            d="M0 531L104 500L210 525L318 487L422 518L525 485L600 514V620H0Z"
+            d="M-1500 531L-820 502L-360 524L0 531L104 500L210 525L318 487L422 518L525 485L600 514L1080 494L1580 522L2100 504V620H-1500Z"
             fill="#a29ba5"
           />
           <g fill="#716c79" opacity=".9">
@@ -156,7 +162,7 @@ function DestinationScenery({ sceneType }) {
             <ellipse cx="514" cy="502" rx="27" ry="7" />
           </g>
           <path
-            d="M0 575H600"
+            d="M-1500 575H2100"
             stroke="#c0b8b9"
             strokeWidth="3"
             opacity=".5"
@@ -269,11 +275,11 @@ function DestinationScenery({ sceneType }) {
           <circle cx="110" cy="148" r="34" fill="#315c8a" opacity=".82" />
           {/* Frontier Ridge & Outpost Habitat Domes */}
           <path
-            d="M0 476L120 444L220 470L340 426L465 462L600 434V620H0Z"
+            d="M-1500 476L-860 446L-380 470L0 476L120 444L220 470L340 426L465 462L600 434L1040 466L1540 438L2100 468V620H-1500Z"
             fill="#565264"
           />
           <path
-            d="M0 524L140 492L265 516L410 486L600 510V620H0Z"
+            d="M-1500 524L-840 494L-360 516L0 524L140 492L265 516L410 486L600 510L1060 490L1560 518L2100 498V620H-1500Z"
             fill="#7b7488"
           />
           {/* Pressurized Domes & Comms Mast */}
@@ -397,7 +403,7 @@ export function FlightScene({
       <svg
         className="flight-backdrop"
         viewBox={`0 ${flight.cameraY.toFixed(2)} 600 620`}
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
         aria-hidden="true"
       >
         <defs>
@@ -420,20 +426,20 @@ export function FlightScene({
           </linearGradient>
         </defs>
         {/* One continuous 2,480-unit-tall world. Camera starts at its bottom. */}
-        <rect x="0" y="0" width="600" height="2480" fill="url(#world-gradient)" />
+        <rect x="-1500" y="0" width="3600" height="2480" fill="url(#world-gradient)" />
         <g className="world world-pad" transform="translate(0 1860)">
           <circle cx="465" cy="126" r="48" fill="#dfb58d" opacity=".7" />
           <path
-            d="M0 428L75 386L145 432L245 373L332 416L440 382L525 425L600 390V620H0Z"
+            d="M-1500 428L-900 392L-450 424L0 428L75 386L145 432L245 373L332 416L440 382L525 425L600 390L980 422L1450 388L2100 420V620H-1500Z"
             fill="#34364a"
           />
           <path
-            d="M0 488L110 448L183 479L305 440L405 476L505 447L600 473V620H0Z"
+            d="M-1500 488L-880 454L-420 482L0 488L110 448L183 479L305 440L405 476L505 447L600 473L1020 449L1500 480L2100 456V620H-1500Z"
             fill="#242737"
           />
-          <rect y="542" width="600" height="78" fill="#262531" />
+          <rect x="-1500" y="542" width="3600" height="78" fill="#262531" />
           <path
-            d="M0 540H600M0 574H600"
+            d="M-1500 540H2100M-1500 574H2100"
             stroke="#777184"
             strokeWidth="3"
             opacity=".5"
@@ -453,9 +459,9 @@ export function FlightScene({
             strokeWidth="2"
           />
           <rect
-            x="0"
+            x="-1500"
             y="555"
-            width="600"
+            width="3600"
             height="65"
             fill="#13121d"
             opacity=".42"

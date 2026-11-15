@@ -42,6 +42,8 @@ export function BuildColumn({
   flight,
   installedSet,
   surplusSet,
+  isBayCollapsed = false,
+  onToggleBay,
   onSetInstalled,
   onToggleSurplus,
   onTelemetryLog,
@@ -424,6 +426,8 @@ export function BuildColumn({
         dragSource={dragUi?.source ?? null}
         isOverBay={dragUi?.isOverBay ?? false}
         inspected={inspected}
+        isCollapsed={isBayCollapsed}
+        onToggleCollapse={onToggleBay}
         onToggleSurplus={onToggleSurplus}
         onSlotPointerDown={handleSlotPointerDown}
         onSlotClickHint={handleSlotClickHint}

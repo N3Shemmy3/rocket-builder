@@ -1,24 +1,34 @@
 import { fmt, money } from '../utils/format';
+import { CollapsiblePanel } from './CollapsiblePanel';
 
 export function MissionBriefing({
   mission,
   missionIndex,
   totalMissions,
   onOpenNasaCodex,
+  openPanels,
+  onTogglePanel,
 }) {
   return (
-    <section className="mission-column" aria-label="Mission briefing">
-      <div className="panel directive">
-        <h2>Mission Directive</h2>
-        <p id="mission-title">
+    <div className="mission-panels" aria-label="Mission briefing">
+      <CollapsiblePanel
+        id="mission-directive"
+        title="MISSION DIRECTIVE"
+        badge={`[${missionIndex + 1}/${totalMissions}] ${mission.id}`}
+        badgeTone="purple"
+        isOpen={openPanels.directive}
+        onToggle={() => onTogglePanel('directive')}
+        className="directive-panel"
+      >
+        <p id="mission-title" className="directive-title">
           [{missionIndex + 1}/{totalMissions}] {mission.id}: {mission.name}
         </p>
-      </div>
-      <div className="panel description">
-        <p className="purple text-label" id="mission-category">
+        <p className="purple text-label directive-category" id="mission-category">
           CATEGORY: {mission.category}
         </p>
-        <p id="mission-description">{mission.description}</p>
+        <p id="mission-description" className="directive-desc">
+          {mission.description}
+        </p>
         <div className="mission-nasa-tag">
           <span>ORBIT: {mission.orbitalRegime}</span>
           <span>NASA ANALOG: {mission.nasaAnalog}</span>
@@ -30,10 +40,18 @@ export function MissionBriefing({
             Open NASA Dataset Reference &gt;
           </button>
         </div>
-      </div>
-      <div className="panel constraints">
-        <h2>CONTRACT CONSTRAINTS &amp; TARGETS</h2>
-        <ul id="constraint-list">
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
+        id="contract-constraints"
+        title="CONTRACT CONSTRAINTS & TARGETS"
+        badge={`${fmt(mission.altitude)}km`}
+        badgeTone="cyan"
+        isOpen={openPanels.constraints}
+        onToggle={() => onTogglePanel('constraints')}
+        className="constraints-panel"
+      >
+        <ul id="constraint-list" className="constraints-list">
           <li>Required Payload: {mission.payload}</li>
           <li>Min Cargo Capacity: {fmt(mission.cargo)}kg</li>
           {mission.requiredSeats > 0 && (
@@ -51,7 +69,7 @@ export function MissionBriefing({
           by 45% and prep time by 50%. Pair Solid SRBs or Upper Stages to reach
           higher Delta-V!
         </p>
-      </div>
-    </section>
+      </CollapsiblePanel>
+    </div>
   );
 }
