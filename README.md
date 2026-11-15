@@ -67,3 +67,4 @@ parts in `src/data/`, derived metrics in `src/utils/`, flight animation in
 
 For details, see [Gameplay](docs/gameplay.md) and
 [Technical documentation](docs/technical.md).
+
