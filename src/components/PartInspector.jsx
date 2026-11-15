@@ -1,9 +1,27 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { PARTS } from '../data/parts';
 import { fmt, money } from '../utils/format';
-import { getPartCost, getPartPrep } from '../utils/rocketStats';
+import { getPartCost, getPartPrep, isPartReused } from '../utils/rocketStats';
 
 const TOOLTIP_PADDING = 12;
+
+function getFuelLabel(part) {
+  if (part.fuelType === 'liquid') return 'LIQUID (REUSABLE)';
+  if (part.fuelType === 'solid') return 'SOLID (EXPENDABLE)';
+  if (part.fuelType === 'capsule') return 'CAPSULE (REUSABLE)';
+  return 'STANDARD HARDWARE';
+}
+
+function getProcurementModeLabel(part, reused) {
+  if (!part.reusable) {
+    return part.fuelType === 'solid'
+      ? 'EXPENDABLE (Single-Use Solid)'
+      : 'STANDARD HARDWARE';
+  }
+  return reused
+    ? 'REUSED / REFURBISHED (-45% Cost, -50% Prep)'
+    : 'FACTORY NEW (Reusable Eligible)';
+}
 
 export function PartInspector({
   partKey,
@@ -34,7 +52,7 @@ export function PartInspector({
 
   const part = partKey ? PARTS[partKey] : null;
   const installed = partKey ? installedSet.has(partKey) : false;
-  const surplus = partKey ? surplusSet.has(partKey) : false;
+  const reused = partKey ? isPartReused(partKey, surplusSet) : false;
 
   return (
     <div
@@ -51,33 +69,57 @@ export function PartInspector({
     >
       {part && (
         <>
-          <div className="inspector-heading">{part.type}</div>
+          <div className="inspector-heading">
+            {part.stageRole} // {part.type}
+          </div>
           <div className="inspector-inner">
             <h3>{part.name}</h3>
             <p>
               Part ID: {part.code}
+              <br />
+              Fuel / Class: {getFuelLabel(part)}
               <br />
               Cost: {money(getPartCost(partKey, surplusSet))}
               <br />
               Prep: {getPartPrep(partKey, surplusSet)}d
               <br />
               Mass: {fmt(part.mass)}kg
+              {part.propellantMass > 0
+                ? ` (${fmt(part.dryMass)}kg dry)`
+                : ''}
               <br />
-              Seats: {part.seats}
+              Delta-V Bonus: {part.dv > 0 ? `+${fmt(part.dv)} m/s` : '0 m/s'}
               <br />
-              Cargo: {fmt(part.cargo)}kg
+              Thrust: {part.thrust > 0 ? `${fmt(part.thrust / 1000)} kN` : 'N/A'}
               <br />
-              Status: {installed ? 'INSTALLED' : 'AVAILABLE'}
+              Height: {part.heightM > 0 ? `${part.heightM.toFixed(1)}m` : 'Radial / Attachment'}
               <br />
-              Mode: {surplus ? 'SURPLUS' : 'FACTORY NEW'}
+              {part.seats > 0 && (
+                <>
+                  Crew Seats: {part.seats}
+                  <br />
+                </>
+              )}
+              {part.cargo > 0 && (
+                <>
+                  Cargo: {fmt(part.cargo)}kg
+                  <br />
+                </>
+              )}
+              Status: {installed ? 'MOUNTED ON PAD' : 'AVAILABLE'}
+              <br />
+              Mode: {getProcurementModeLabel(part, reused)}
               <br />
               NASA Ref: {part.nasaAnalog}
               <br />
               System: {part.propellant}
             </p>
             <p className="inspector-help">
-              Click the part to {installed ? 'remove' : 'install'} it. Use
-              NEW/SURPLUS to change procurement mode.
+              Drag {part.code} onto the launch pad to mount or swap into its
+              stage slot, or drag off the rocket to the Assembly Bay to remove.
+              {part.reusable
+                ? ' Use NEW / REUSED to refurbish liquid/capsule hardware.'
+                : ''}
             </p>
           </div>
         </>

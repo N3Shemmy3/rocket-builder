@@ -8,8 +8,6 @@ import {
 import { fmt } from '../utils/format';
 
 const G0 = 9.80665;
-const VAC_ISP_S = 348;
-const TANK_PROPELLANT_KG = 22000;
 
 const TABS = [
   { id: 'deltav', label: 'DELTA-V & PHYSICS' },
@@ -34,14 +32,12 @@ export function NasaDatabaseModal({
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const hasTank = installedSet?.has('tank') ?? false;
-  const hasEngine = installedSet?.has('engine') ?? false;
-  const wetMass = stats?.mass ?? 14250;
-  const propMass = hasTank ? TANK_PROPELLANT_KG : 0;
+  const wetMass = stats?.mass ?? 7700;
+  const propMass = stats?.propellantMass ?? 0;
   const dryMass = Math.max(50, wetMass - propMass);
-  const effectiveIsp = hasEngine ? VAC_ISP_S : 0;
+  const effectiveIsp = stats?.effectiveIsp ?? 0;
   const tsiolkovskyDv =
-    hasEngine && hasTank
+    effectiveIsp > 0 && propMass > 0
       ? Math.round(effectiveIsp * G0 * Math.log(wetMass / dryMass))
       : 0;
 

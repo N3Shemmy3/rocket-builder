@@ -8,14 +8,19 @@ import { StartMenu } from './components/StartMenu';
 import { TelemetryColumn } from './components/TelemetryColumn';
 import { TopBar } from './components/TopBar';
 import { MISSIONS } from './data/missions';
-import { AUTOFIT_SURPLUS, PART_ORDER, PARTS } from './data/parts';
+import { installPartInSet, PARTS } from './data/parts';
 import { useFlightAnimation } from './hooks/useFlightAnimation';
 import { money } from './utils/format';
-import { computeRocketStats, validateLaunch } from './utils/rocketStats';
+import {
+  canReusePart,
+  computeRocketStats,
+  getAutoFitBuild,
+  validateLaunch,
+} from './utils/rocketStats';
 
 const STORAGE_KEY = 'capricorn_campaign_v1';
 const INITIAL_TELEMETRY =
-  '[GO FOR LAUNCH] Configure rocket components or select Auto-Fit Valid Build.';
+  '[GO FOR LAUNCH] Drag modules from the Assembly Bay onto the launch pad to design your multi-stage vehicle, or select Auto-Fit Valid Build.';
 
 function loadSavedState() {
   try {
@@ -60,7 +65,8 @@ export function App() {
   const [showNasaModal, setShowNasaModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { flight, playFlight, resetFlight } = useFlightAnimation();
+  const mission = MISSIONS[missionIdx];
+  const { flight, playFlight, resetFlight } = useFlightAnimation(mission);
 
   useEffect(() => {
     try {
@@ -79,7 +85,6 @@ export function App() {
     }
   }, [commanderName, campaign]);
 
-  const mission = MISSIONS[missionIdx];
   const stats = useMemo(
     () => computeRocketStats(installed, surplus),
     [installed, surplus]
@@ -88,57 +93,91 @@ export function App() {
   const changeMission = useCallback(
     (delta) => {
       const nextIdx = (missionIdx + delta + MISSIONS.length) % MISSIONS.length;
+      const nextMission = MISSIONS[nextIdx];
       setMissionIdx(nextIdx);
       setLaunched(false);
       setShowSuccessModal(false);
       setInstalled(new Set(['capsule']));
       setSurplus(new Set());
-      resetFlight();
+      resetFlight(nextMission);
       setTelemetryLog(
-        `[MISSION CONTROL] ${MISSIONS[nextIdx].id} loaded. Awaiting vehicle configuration.`
+        `[MISSION CONTROL] ${nextMission.id} loaded. Awaiting vehicle configuration.`
       );
     },
     [missionIdx, resetFlight]
   );
 
-  const handleToggleInstall = useCallback(
-    (key) => {
-      const part = PARTS[key];
-      const wasInstalled = installed.has(key);
+  const applyInstallChange = useCallback(
+    (key, shouldInstall, message) => {
+      const nextInstalled = shouldInstall
+        ? installPartInSet(installed, key)
+        : (() => {
+            const next = new Set(installed);
+            next.delete(key);
+            return next;
+          })();
 
-      setInstalled((prev) => {
-        const next = new Set(prev);
-        if (wasInstalled) {
-          next.delete(key);
-        } else {
-          next.add(key);
+      setInstalled(nextInstalled);
+      setSurplus((prev) => {
+        const next = new Set();
+        for (const k of prev) {
+          if (nextInstalled.has(k) && canReusePart(k)) {
+            next.add(k);
+          }
         }
         return next;
       });
 
-      if (wasInstalled) {
-        setSurplus((prev) => {
-          if (!prev.has(key)) return prev;
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      }
-
       setLaunched(false);
       setShowSuccessModal(false);
       resetFlight();
-      setTelemetryLog(
-        `[ASSEMBLY] ${wasInstalled ? 'Removed' : 'Installed'} ${part.code} ${wasInstalled ? 'from' : 'in'} build.`
-      );
+      setTelemetryLog(message);
     },
     [installed, resetFlight]
+  );
+
+  const handleSetInstalled = useCallback(
+    (key, shouldInstall) => {
+      const part = PARTS[key];
+      const isInstalled = installed.has(key);
+
+      if (shouldInstall) {
+        if (isInstalled) {
+          setTelemetryLog(
+            `[ASSEMBLY] ${part.code} (${part.name}) is already mounted on the vehicle stack.`
+          );
+          return;
+        }
+        applyInstallChange(
+          key,
+          true,
+          `[ASSEMBLY] Mounted ${part.code} (${part.name}) onto vehicle stack.`
+        );
+        return;
+      }
+
+      if (!isInstalled) return;
+      applyInstallChange(
+        key,
+        false,
+        `[ASSEMBLY] Detached ${part.code} (${part.name}) and returned to Assembly Bay.`
+      );
+    },
+    [installed, applyInstallChange]
   );
 
   const handleToggleSurplus = useCallback(
     (key) => {
       const part = PARTS[key];
-      const willBeSurplus = !surplus.has(key);
+      if (!part) return;
+      if (!canReusePart(key)) {
+        setTelemetryLog(
+          `[PROCUREMENT] ${part.code} (${part.name}) is single-use / non-reusable and cannot be refurbished.`
+        );
+        return;
+      }
+
+      const willBeReused = !surplus.has(key);
 
       setSurplus((prev) => {
         const next = new Set(prev);
@@ -154,22 +193,28 @@ export function App() {
       setShowSuccessModal(false);
       resetFlight();
       setTelemetryLog(
-        `[PROCUREMENT] ${part.code} set to ${willBeSurplus ? 'SURPLUS' : 'FACTORY NEW'}.`
+        `[PROCUREMENT] ${part.code} set to ${
+          willBeReused
+            ? 'REUSED / REFURBISHED (-45% Cost, -50% Prep)'
+            : 'FACTORY NEW'
+        }.`
       );
     },
     [surplus, resetFlight]
   );
 
   const handleAutoFit = useCallback(() => {
-    setInstalled(new Set(PART_ORDER));
-    setSurplus(new Set(AUTOFIT_SURPLUS));
+    const { installed: fitInstalled, surplus: fitSurplus } =
+      getAutoFitBuild(mission);
+    setInstalled(fitInstalled);
+    setSurplus(fitSurplus);
     setLaunched(false);
     setShowSuccessModal(false);
     resetFlight();
     setTelemetryLog(
-      '[AUTO-FIT] Vehicle assembled. Check budget, prep time, thrust, and delta-V before launch.'
+      `[AUTO-FIT] Configured valid ${fitInstalled.size}-module vehicle for ${mission.id}. Review fuel staging, height, and delta-V before launch.`
     );
-  }, [resetFlight]);
+  }, [mission, resetFlight]);
 
   const handleReset = useCallback(() => {
     setInstalled(new Set(['capsule']));
@@ -193,7 +238,7 @@ export function App() {
     setLaunched(false);
     setShowSuccessModal(false);
     setShowLogoutModal(false);
-    resetFlight();
+    resetFlight(MISSIONS[0]);
     setTelemetryLog(INITIAL_TELEMETRY);
     setScreen('dashboard');
   }, [resetFlight]);
@@ -211,7 +256,7 @@ export function App() {
     setLaunched(true);
     setShowSuccessModal(false);
     setTelemetryLog(
-      `[LIFTOFF] ${activeMission.id}: Ascent underway. Tracking atmospheric and lunar scenery...`
+      `[LIFTOFF] ${activeMission.id}: Ascent to ${activeMission.altitude} km underway...`
     );
 
     playFlight(() => {
@@ -227,10 +272,10 @@ export function App() {
         };
       });
       setTelemetryLog(
-        `[MISSION COMPLETE] ${activeMission.id}: Flight sequence complete. Funding grant ${money(activeMission.grant)} recorded.`
+        `[MISSION COMPLETE] ${activeMission.id}: Reached ${activeMission.altitude} km target orbit. Funding grant ${money(activeMission.grant)} recorded.`
       );
       setShowSuccessModal(true);
-    });
+    }, activeMission);
   }, [launched, installed, stats, mission, missionIdx, playFlight]);
 
   const appClasses = ['app'];
@@ -280,18 +325,20 @@ export function App() {
               onOpenNasaCodex={() => setShowNasaModal(true)}
             />
             <BuildColumn
+              mission={mission}
               launched={launched}
               stats={stats}
               flight={flight}
               installedSet={installed}
               surplusSet={surplus}
-              onToggleInstall={handleToggleInstall}
+              onSetInstalled={handleSetInstalled}
               onToggleSurplus={handleToggleSurplus}
+              onTelemetryLog={setTelemetryLog}
             />
             <TelemetryColumn
               mission={mission}
               stats={stats}
-              surplusCount={surplus.size}
+              surplusCount={stats.reusedCount}
               telemetryLog={telemetryLog}
               onLaunch={handleLaunch}
               onReset={handleReset}
@@ -321,7 +368,7 @@ export function App() {
           missionIndex={missionIdx}
           totalMissions={MISSIONS.length}
           stats={stats}
-          surplusCount={surplus.size}
+          surplusCount={stats.reusedCount}
           completedCount={campaign.completed.size}
           onNextMission={() => changeMission(1)}
           onStayOnPad={() => setShowSuccessModal(false)}

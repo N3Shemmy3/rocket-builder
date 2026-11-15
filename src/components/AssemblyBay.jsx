@@ -1,55 +1,97 @@
-import { useCallback, useState } from 'react';
-import { PART_ORDER } from '../data/parts';
+import { useState } from 'react';
+import { PART_CATEGORIES, PART_ORDER, PARTS } from '../data/parts';
 import { PartCard } from './PartCard';
 import { PartInspector } from './PartInspector';
 
 export function AssemblyBay({
   installedSet,
   surplusSet,
-  onToggleInstall,
+  bayRef,
+  activeDragPart = null,
+  dragSource = null,
+  isOverBay = false,
+  inspected = null,
   onToggleSurplus,
+  onSlotPointerDown,
+  onSlotClickHint,
+  onInspectStart,
+  onInspectMove,
+  onInspectEnd,
+  onNativeDragOver,
+  onNativeDrop,
 }) {
-  const [inspected, setInspected] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const isReturnTarget = Boolean(activeDragPart) && dragSource === 'rocket';
+  const activeCode = activeDragPart ? PARTS[activeDragPart]?.code : null;
 
-  const handleInspectStart = useCallback((partKey, x, y) => {
-    setInspected({ partKey, pointer: { x, y } });
-  }, []);
-
-  const handleInspectMove = useCallback((partKey, x, y) => {
-    setInspected({ partKey, pointer: { x, y } });
-  }, []);
-
-  const handleInspectEnd = useCallback(() => {
-    setInspected(null);
-  }, []);
+  const visibleParts = PART_ORDER.filter((key) => {
+    if (activeCategory === 'all') return true;
+    return PARTS[key]?.category === activeCategory;
+  });
 
   return (
     <>
-      <div className="assembly-title">ASSEMBLY BAY</div>
-      <div className="assembly-bottom">
+      <div className="assembly-title">
+        <span>ASSEMBLY BAY</span>
+        {isReturnTarget && (
+          <span className={`assembly-drop-badge${isOverBay ? ' over' : ''}`}>
+            {isOverBay
+              ? `RELEASE TO DETACH ${activeCode}`
+              : `DROP HERE TO DETACH ${activeCode}`}
+          </span>
+        )}
+      </div>
+      <div
+        className="bay-category-tabs"
+        role="tablist"
+        aria-label="Filter parts by rocket stage or category"
+      >
+        {PART_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            role="tab"
+            aria-selected={activeCategory === cat.id}
+            className={`bay-tab${activeCategory === cat.id ? ' active' : ''}`}
+            onClick={() => setActiveCategory(cat.id)}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+      <div
+        ref={bayRef}
+        className="assembly-bottom"
+        data-drop-active={isReturnTarget ? 'true' : undefined}
+        data-drop-over={isReturnTarget && isOverBay ? 'true' : undefined}
+        onDragOver={(e) => onNativeDragOver?.(e, 'bay')}
+        onDrop={(e) => onNativeDrop?.(e, 'bay')}
+      >
         <div
           className="slots"
           id="part-slots"
           role="group"
           aria-label="Available rocket parts"
         >
-          {PART_ORDER.map((key) => (
+          {visibleParts.map((key) => (
             <PartCard
               key={key}
               partKey={key}
               installed={installedSet.has(key)}
               surplus={surplusSet.has(key)}
-              onToggleInstall={onToggleInstall}
+              isDragging={activeDragPart === key}
               onToggleSurplus={onToggleSurplus}
-              onInspectStart={handleInspectStart}
-              onInspectMove={handleInspectMove}
-              onInspectEnd={handleInspectEnd}
+              onSlotPointerDown={onSlotPointerDown}
+              onSlotClickHint={onSlotClickHint}
+              onInspectStart={onInspectStart}
+              onInspectMove={onInspectMove}
+              onInspectEnd={onInspectEnd}
             />
           ))}
         </div>
       </div>
       <PartInspector
-        partKey={inspected?.partKey ?? null}
+        partKey={activeDragPart ? null : (inspected?.partKey ?? null)}
         pointer={inspected?.pointer ?? null}
         installedSet={installedSet}
         surplusSet={surplusSet}

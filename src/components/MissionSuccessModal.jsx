@@ -159,7 +159,7 @@ export function MissionSuccessModal({
           <div className="success-stat">
             <span>SYSTEM RELIABILITY</span>
             <strong>
-              {stats.reliability}% ({surplusCount} Surplus)
+              {stats.reliability}% ({surplusCount} Reused)
             </strong>
           </div>
         </div>

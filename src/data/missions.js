@@ -4,9 +4,10 @@ export const MISSIONS = [
     name: 'ISS LIFE-SUPPORT DROP',
     category: 'ORBITAL STATION RESUPPLY',
     description:
-      'Low Earth Orbit station ‘Horizon-1’ is running critically low on CO2 scrubbers and food rations. Assemble a reliable single-stage supply rocket within budget before their reserve filters saturate.',
+      'Low Earth Orbit station ‘Horizon-1’ is running critically low on CO2 scrubbers and food rations. Assemble a reliable supply rocket within budget before their reserve filters saturate.',
     payload: 'Hermes Supply Pod Mk1',
     cargo: 800,
+    requiredSeats: 0,
     altitude: 400,
     deltaV: 9200,
     budget: 9500000,
@@ -16,6 +17,17 @@ export const MISSIONS = [
     orbitalRegime: 'LEO (400 km, 51.6° inc)',
     nasaAnalog: 'NASA Commercial Resupply Services (CRS-2 / Cygnus & Dragon)',
     nasaDataset: 'ISS Trajectory & Mass Balance Log (NASA Open Data)',
+    flightProfile: {
+      durationMs: 10000,
+      sceneType: 'station',
+      altitudeWaypoints: [12, 110, 280, 400],
+      stages: {
+        pad: '01 / PAD LIFTOFF',
+        sky: '02 / MAX-Q ATMOSPHERIC ASCENT',
+        space: '03 / LEO ORBITAL INSERTION',
+        moon: '04 / HORIZON-1 STATION RENDEZVOUS',
+      },
+    },
   },
   {
     id: 'OP-02',
@@ -25,6 +37,7 @@ export const MISSIONS = [
       'Deploy an upgraded communication package into a lunar-transfer trajectory. Prioritize propellant and reliable upper-stage performance.',
     payload: 'Selene Relay Pod',
     cargo: 500,
+    requiredSeats: 0,
     altitude: 1500,
     deltaV: 11500,
     budget: 13000000,
@@ -34,6 +47,17 @@ export const MISSIONS = [
     orbitalRegime: 'Trans-Lunar Injection / NRHO (1,500–70,000 km)',
     nasaAnalog: 'Artemis Lunar Gateway & LCRD Relay Architecture',
     nasaDataset: 'JPL Horizons Ephemeris & Cislunar Delta-V Budget',
+    flightProfile: {
+      durationMs: 16000,
+      sceneType: 'lunar-relay',
+      altitudeWaypoints: [18, 180, 780, 1500],
+      stages: {
+        pad: '01 / LAUNCH SITE',
+        sky: '02 / TRANSONIC SKY ASCENT',
+        space: '03 / TRANS-LUNAR INJECTION',
+        moon: '04 / LUNAR RELAY INSERTION',
+      },
+    },
   },
   {
     id: 'OP-03',
@@ -43,6 +67,7 @@ export const MISSIONS = [
       'Launch a science instrument to a high observation orbit. A lightweight payload and efficient engine are essential.',
     payload: 'Aurora Science Pod',
     cargo: 300,
+    requiredSeats: 0,
     altitude: 700,
     deltaV: 9700,
     budget: 11500000,
@@ -52,6 +77,17 @@ export const MISSIONS = [
     orbitalRegime: 'Sun-Synchronous Orbit (700 km Polar)',
     nasaAnalog: 'NASA Earth System Observatory (EOS Aura / PACE)',
     nasaDataset: 'NASA Earthdata & Launch Services Program (LSP) Performance',
+    flightProfile: {
+      durationMs: 12000,
+      sceneType: 'aurora',
+      altitudeWaypoints: [15, 140, 420, 700],
+      stages: {
+        pad: '01 / POLAR PAD LIFTOFF',
+        sky: '02 / STRATOSPHERIC CLIMB',
+        space: '03 / HIGH-ALTITUDE SEPARATION',
+        moon: '04 / POLAR SUN-SYNC ORBIT',
+      },
+    },
   },
   {
     id: 'OP-04',
@@ -61,6 +97,7 @@ export const MISSIONS = [
       'A stranded crew requires an urgent rescue flight. Balance safe ascent, capsule capacity, and a narrow preparation window.',
     payload: 'Orion Crew Capsule',
     cargo: 0,
+    requiredSeats: 3,
     altitude: 420,
     deltaV: 9400,
     budget: 15000000,
@@ -70,6 +107,17 @@ export const MISSIONS = [
     orbitalRegime: 'LEO High-Inclination Rendezvous (420 km)',
     nasaAnalog: 'NASA Commercial Crew Program (CCP) Contingency Return',
     nasaDataset: 'NASA Human Spaceflight Architecture & Crew Safety Margins',
+    flightProfile: {
+      durationMs: 10500,
+      sceneType: 'rescue',
+      altitudeWaypoints: [12, 120, 300, 420],
+      stages: {
+        pad: '01 / EMERGENCY LIFTOFF',
+        sky: '02 / RAPID INTERCEPT ASCENT',
+        space: '03 / PHASING ORBIT TRANSFER',
+        moon: '04 / CREW CAPSULE RENDEZVOUS',
+      },
+    },
   },
   {
     id: 'OP-05',
@@ -79,6 +127,7 @@ export const MISSIONS = [
       'Deliver mission-critical cargo to the Frontier outpost. The mass of the shipment demands a powerful and carefully balanced rocket.',
     payload: 'Atlas Heavy Cargo Pod',
     cargo: 1500,
+    requiredSeats: 0,
     altitude: 800,
     deltaV: 10500,
     budget: 19000000,
@@ -88,5 +137,16 @@ export const MISSIONS = [
     orbitalRegime: 'High-Energy Orbital Logistics (800 km)',
     nasaAnalog: 'Artemis CLPS & Deep Space Logistics Heavy Cargo',
     nasaDataset: 'NASA NSSDCA Launch Vehicle Heavy Payload Catalog',
+    flightProfile: {
+      durationMs: 14500,
+      sceneType: 'outpost',
+      altitudeWaypoints: [16, 150, 480, 800],
+      stages: {
+        pad: '01 / HEAVY-LIFT IGNITION',
+        sky: '02 / BOOSTER ASCENT CORRIDOR',
+        space: '03 / CARGO TRANSFER TRAJECTORY',
+        moon: '04 / FRONTIER OUTPOST ARRIVAL',
+      },
+    },
   },
 ];

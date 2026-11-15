@@ -68,10 +68,12 @@ export function TelemetryColumn({
       <div className="panel summary">
         <p>
           Reliability:<span id="reliability">{stats.reliability}%</span> |
-          Surplus Parts:<span id="surplus-total">{surplusCount}</span>
+          Reused Parts:<span id="surplus-total">{surplusCount}</span>
         </p>
         <p>
-          Wet Mass: <span id="total-mass">{fmt(stats.mass)}kg</span>
+          Wet Mass: <span id="total-mass">{fmt(stats.mass)}kg</span> | Height:{' '}
+          <span id="total-height">{stats.heightM.toFixed(1)}m</span> (
+          {stats.stages} {stats.stages === 1 ? 'Stage' : 'Stages'})
         </p>
       </div>
       <div className="panel-flat telemetry">

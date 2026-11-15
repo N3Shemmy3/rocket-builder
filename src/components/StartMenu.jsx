@@ -1,7 +1,18 @@
 import { useEffect } from 'react';
-import { PART_ORDER } from '../data/parts';
 import { money } from '../utils/format';
 import { RocketSvg } from './RocketSvg';
+
+const PREVIEW_ROCKET_PARTS = [
+  'capsule_crew',
+  'upper_tank_liquid',
+  'upper_engine_liquid',
+  'tank_cryo_heavy',
+  'engine_heavy_liquid',
+  'booster_solid',
+  'avionics',
+  'stabilizer',
+  'fairing',
+];
 
 export function StartMenu({
   commanderName,
@@ -26,7 +37,7 @@ export function StartMenu({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onStart]);
 
-  const fullPreviewSet = new Set(PART_ORDER);
+  const fullPreviewSet = new Set(PREVIEW_ROCKET_PARTS);
 
   return (
     <div className="start-menu-screen" role="main" aria-label="Start menu">
@@ -41,7 +52,7 @@ export function StartMenu({
             {/* <span className="start-badge">//CAPRICORN</span> */}
             <span className="start-sub-badge">//ASTRIX FLIGHT SYSTEMS</span>
           </div>
-          <h1 className="start-title">NASA: CAPRICORN — MISSION CONTROL</h1>
+          <h1 className="start-title">NASA: ASTRIX — MISSION CONTROL</h1>
           <p className="start-subtitle">
             Assemble flight-ready launch vehicles, balance NASA delta-V,
             thrust-to-weight, and procurement trade-offs, and guide orbital

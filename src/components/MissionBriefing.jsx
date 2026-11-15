@@ -36,6 +36,9 @@ export function MissionBriefing({
         <ul id="constraint-list">
           <li>Required Payload: {mission.payload}</li>
           <li>Min Cargo Capacity: {fmt(mission.cargo)}kg</li>
+          {mission.requiredSeats > 0 && (
+            <li>Required Crew Capacity: {mission.requiredSeats} Astronauts</li>
+          )}
           <li>Target Orbit Altitude: {fmt(mission.altitude)}km</li>
           <li>Required Orbit Delta-V: {fmt(mission.deltaV)}m/s</li>
           <li className="spacer" />
@@ -44,8 +47,9 @@ export function MissionBriefing({
           <li>Completion Funding Grant: {money(mission.grant)}</li>
         </ul>
         <p className="tip">
-          TIP: Toggle [SURPLUS] on parts to cut cost by 45% and prep time by
-          50%, or click [Auto-Fit Valid Build] in the top-right!
+          TIP: Toggle [REUSED] on liquid-fuel parts &amp; capsules to cut cost
+          by 45% and prep time by 50%. Pair Solid SRBs or Upper Stages to reach
+          higher Delta-V!
         </p>
       </div>
     </section>

@@ -1,42 +1,52 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FLIGHT_DURATION, FLIGHT_STAGES, WORLD_TRAVEL } from '../data/flightStages';
+import { getMissionFlightProfile, WORLD_TRAVEL } from '../data/flightStages';
 
-const INITIAL_FLIGHT = {
-  active: false,
-  phase: 'pad',
-  phaseLabel: FLIGHT_STAGES[0].label,
-  progress: 0,
-  altitude: 0,
-  cameraY: WORLD_TRAVEL,
-  rocketTransform: '',
-};
-
-function getPhaseAndAltitude(progress) {
-  const phase =
-    progress < 0.22
-      ? 'pad'
-      : progress < 0.48
-        ? 'sky'
-        : progress < 0.75
-          ? 'space'
-          : 'moon';
-
-  const altitude =
-    progress < 0.22
-      ? (progress / 0.22) * 10
-      : progress < 0.48
-        ? 10 + ((progress - 0.22) / 0.26) * 130
-        : progress < 0.75
-          ? 140 + ((progress - 0.48) / 0.27) * 100000
-          : 100140 + ((progress - 0.75) / 0.25) * 284260;
-
-  return { phase, altitude };
+function createInitialFlight(mission) {
+  const profile = getMissionFlightProfile(mission);
+  return {
+    active: false,
+    phase: 'pad',
+    phaseLabel: profile.stages.pad,
+    progress: 0,
+    altitude: 0,
+    cameraY: WORLD_TRAVEL,
+    rocketTransform: '',
+  };
 }
 
-export function useFlightAnimation() {
-  const [flight, setFlight] = useState(INITIAL_FLIGHT);
+function getPhaseAndAltitude(progress, profile) {
+  const [padTop, skyTop, spaceTop, targetAlt] = profile.altitudeWaypoints;
+
+  if (progress < 0.22) {
+    return {
+      phase: 'pad',
+      altitude: (progress / 0.22) * padTop,
+    };
+  }
+  if (progress < 0.48) {
+    return {
+      phase: 'sky',
+      altitude: padTop + ((progress - 0.22) / 0.26) * (skyTop - padTop),
+    };
+  }
+  if (progress < 0.75) {
+    return {
+      phase: 'space',
+      altitude: skyTop + ((progress - 0.48) / 0.27) * (spaceTop - skyTop),
+    };
+  }
+  return {
+    phase: 'moon',
+    altitude: spaceTop + ((progress - 0.75) / 0.25) * (targetAlt - spaceTop),
+  };
+}
+
+export function useFlightAnimation(mission) {
+  const [flight, setFlight] = useState(() => createInitialFlight(mission));
   const frameRef = useRef(null);
   const onDoneRef = useRef(null);
+  const missionRef = useRef(mission);
+  missionRef.current = mission;
 
   const cancelFrame = useCallback(() => {
     if (frameRef.current !== null) {
@@ -45,24 +55,30 @@ export function useFlightAnimation() {
     }
   }, []);
 
-  const resetFlight = useCallback(() => {
-    cancelFrame();
-    onDoneRef.current = null;
-    setFlight(INITIAL_FLIGHT);
-  }, [cancelFrame]);
+  const resetFlight = useCallback(
+    (missionOverride) => {
+      cancelFrame();
+      onDoneRef.current = null;
+      setFlight(createInitialFlight(missionOverride ?? missionRef.current));
+    },
+    [cancelFrame]
+  );
 
   const playFlight = useCallback(
-    (onDone) => {
+    (onDone, missionOverride) => {
       cancelFrame();
       onDoneRef.current = onDone;
+      const profile = getMissionFlightProfile(
+        missionOverride ?? missionRef.current
+      );
       const start = performance.now();
 
       const tick = (now) => {
-        const progress = Math.min(1, (now - start) / FLIGHT_DURATION);
-        const { phase, altitude } = getPhaseAndAltitude(progress);
-        const stage =
-          FLIGHT_STAGES.find((s) => s.name === phase) || FLIGHT_STAGES[0];
-        const cameraY = WORLD_TRAVEL * (1 - Math.max(0, Math.min(1, progress)));
+        const progress = Math.min(1, (now - start) / profile.durationMs);
+        const { phase, altitude } = getPhaseAndAltitude(progress, profile);
+        const phaseLabel = profile.stages[phase] || profile.stages.pad;
+        const cameraY =
+          WORLD_TRAVEL * (1 - Math.max(0, Math.min(1, progress)));
 
         if (progress < 1) {
           const yOffset = -8 - Math.sin(progress * 24) * 5;
@@ -70,7 +86,7 @@ export function useFlightAnimation() {
           setFlight({
             active: true,
             phase,
-            phaseLabel: stage.label,
+            phaseLabel,
             progress,
             altitude,
             cameraY,
@@ -82,9 +98,9 @@ export function useFlightAnimation() {
           setFlight({
             active: false,
             phase,
-            phaseLabel: stage.label,
+            phaseLabel,
             progress: 1,
-            altitude,
+            altitude: profile.altitudeWaypoints[3],
             cameraY: 0,
             rocketTransform: 'translateY(-8px) scale(.75)',
           });

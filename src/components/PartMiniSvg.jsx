@@ -1,97 +1,143 @@
-const PART_ACCENTS = {
-  capsule: '#00f4d6',
-  tank: '#bd73fa',
-  engine: '#6acbbd',
-  avionics: '#e7bc7c',
-  stabilizer: '#b482d8',
-  fairing: '#7788b6',
+import {
+  CENTER_X,
+  HULL_HALF,
+  HULL_WIDTH,
+  RocketPartGraphic,
+} from './RocketSvg';
+
+const STANDARD_VIEWBOX = '76 4 108 92';
+const WIDE_VIEWBOX = '64 4 132 92';
+const RADIAL_VIEWBOX = '46 4 168 92';
+
+const MINI_PREVIEWS = {
+  capsule: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 16, width: HULL_WIDTH, height: 68 },
+  },
+  capsule_science: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 16, width: HULL_WIDTH, height: 68 },
+  },
+  capsule_crew: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 14, width: HULL_WIDTH, height: 72 },
+  },
+  capsule_heavy: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 12, width: HULL_WIDTH, height: 76 },
+  },
+  upper_tank_liquid: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 18, width: HULL_WIDTH, height: 64 },
+  },
+  upper_engine_liquid: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 20, width: HULL_WIDTH, height: 58 },
+  },
+  upper_solid_kick: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 18, width: HULL_WIDTH, height: 64 },
+  },
+  tank: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 14, width: HULL_WIDTH, height: 72 },
+  },
+  tank_cryo_heavy: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 10, width: HULL_WIDTH, height: 80 },
+  },
+  tank_finned: {
+    viewBox: WIDE_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 12, width: HULL_WIDTH, height: 76 },
+  },
+  tank_solid_core: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 15, width: HULL_WIDTH, height: 70 },
+  },
+  engine: {
+    viewBox: WIDE_VIEWBOX,
+    rect: { x: CENTER_X - 58, y: 18, width: 116, height: 62 },
+  },
+  engine_heavy_liquid: {
+    viewBox: WIDE_VIEWBOX,
+    rect: { x: CENTER_X - 58, y: 16, width: 116, height: 66 },
+  },
+  engine_solid: {
+    viewBox: WIDE_VIEWBOX,
+    rect: { x: CENTER_X - 58, y: 20, width: 116, height: 56 },
+  },
+  booster_solid: {
+    viewBox: RADIAL_VIEWBOX,
+    placement: {
+      boosterTop: 15,
+      boosterBottom: 86,
+      upperStrutY: 44,
+      lowerStrutY: 68,
+    },
+    options: {
+      leftX: CENTER_X - 58,
+      rightX: CENTER_X + 30,
+      coreHalf: 16,
+      standalone: true,
+    },
+  },
+  booster_liquid: {
+    viewBox: RADIAL_VIEWBOX,
+    placement: {
+      boosterTop: 10,
+      boosterBottom: 90,
+      upperStrutY: 42,
+      lowerStrutY: 70,
+    },
+    options: {
+      leftX: CENTER_X - 58,
+      rightX: CENTER_X + 30,
+      coreHalf: 16,
+      standalone: true,
+    },
+  },
+  avionics: {
+    viewBox: STANDARD_VIEWBOX,
+    rect: { x: CENTER_X - HULL_HALF, y: 28, width: HULL_WIDTH, height: 44 },
+  },
+  stabilizer: {
+    viewBox: RADIAL_VIEWBOX,
+    placement: {
+      finBottom: 82,
+      finH: 56,
+      finRootHalf: 22,
+      finTipHalf: 62,
+    },
+    options: {
+      standalone: true,
+    },
+  },
+  fairing: {
+    viewBox: WIDE_VIEWBOX,
+    rect: { x: CENTER_X - 48, y: 12, width: 96, height: 76 },
+    options: {
+      standalone: true,
+    },
+  },
 };
 
-export function PartMiniSvg({ partKey, code }) {
-  const accent = PART_ACCENTS[partKey] || '#f6f2ff';
+export function PartMiniSvg({ partKey }) {
+  const config = MINI_PREVIEWS[partKey];
+  if (!config) return null;
 
   return (
-    <svg viewBox="0 0 80 100" aria-hidden="true">
-      <g
-        stroke="#f6f2ff"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        fill="#130c1b"
-      >
-        {partKey === 'capsule' && (
-          <>
-            <path d="M40 12 L58 44 H22 Z" />
-            <rect x="22" y="44" width="36" height="32" />
-            <path
-              d="M38 19 L30 35 M54 48 V71"
-              stroke={accent}
-              strokeWidth="1.4"
-            />
-          </>
-        )}
-        {partKey === 'tank' && (
-          <>
-            <rect x="23" y="14" width="34" height="66" />
-            <path
-              d="M27 28 V48 M27 54 V72 M45 20 H53 M53 21 V32"
-              stroke={accent}
-              strokeWidth="1.5"
-            />
-          </>
-        )}
-        {partKey === 'engine' && (
-          <>
-            <path d="M24 18 H56 L68 56 H12 Z" />
-            <path d="M28 56 L22 82 H58 L52 56 Z" />
-            <path
-              d="M52 24 L62 51 M32 61 L28 77 M48 61 L52 77"
-              stroke={accent}
-              strokeWidth="1.4"
-            />
-          </>
-        )}
-        {partKey === 'avionics' && (
-          <>
-            <rect x="18" y="24" width="44" height="46" />
-            <path
-              d="M18 35 H62 M18 59 H62"
-              stroke={accent}
-              strokeWidth="1.5"
-            />
-            <circle cx="27" cy="47" r="3" fill={accent} stroke="none" />
-          </>
-        )}
-        {partKey === 'stabilizer' && (
-          <>
-            <rect x="31" y="20" width="18" height="58" />
-            <path d="M31 36 L11 78 H31 Z" stroke={accent} />
-            <path d="M49 36 L69 78 H49 Z" stroke={accent} />
-          </>
-        )}
-        {partKey === 'fairing' && (
-          <>
-            <path d="M40 8 L64 78 H16 Z" />
-            <path
-              d="M40 8 V78"
-              stroke={accent}
-              strokeWidth="1.4"
-              strokeDasharray="3 3"
-            />
-          </>
-        )}
+    <svg viewBox={config.viewBox} aria-hidden="true">
+      <g stroke="#f6f2ff" strokeWidth="2.2" strokeLinejoin="round">
+        <RocketPartGraphic
+          partKey={partKey}
+          rect={config.rect}
+          placement={config.placement}
+          isBlueprint
+          strokeMain="#f6f2ff"
+          strokeAccent="#00f4d6"
+          options={config.options}
+        />
       </g>
-      <rect x="20" y="45" width="40" height="15" fill="#09020a" opacity="0.88" />
-      <text
-        x="40"
-        y="56"
-        fontFamily="monospace"
-        fontWeight="bold"
-        fontSize="10.5"
-        fill={accent}
-        textAnchor="middle"
-      >
-        {code}
-      </text>
     </svg>
   );
 }
