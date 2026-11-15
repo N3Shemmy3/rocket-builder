@@ -90,21 +90,28 @@ export function App() {
     [installed, surplus]
   );
 
+  const resetLaunchState = useCallback(
+    (missionOverride) => {
+      setLaunched(false);
+      setShowSuccessModal(false);
+      resetFlight(missionOverride);
+    },
+    [resetFlight]
+  );
+
   const changeMission = useCallback(
     (delta) => {
       const nextIdx = (missionIdx + delta + MISSIONS.length) % MISSIONS.length;
       const nextMission = MISSIONS[nextIdx];
       setMissionIdx(nextIdx);
-      setLaunched(false);
-      setShowSuccessModal(false);
       setInstalled(new Set(['capsule']));
       setSurplus(new Set());
-      resetFlight(nextMission);
+      resetLaunchState(nextMission);
       setTelemetryLog(
         `[MISSION CONTROL] ${nextMission.id} loaded. Awaiting vehicle configuration.`
       );
     },
-    [missionIdx, resetFlight]
+    [missionIdx, resetLaunchState]
   );
 
   const applyInstallChange = useCallback(
@@ -128,12 +135,10 @@ export function App() {
         return next;
       });
 
-      setLaunched(false);
-      setShowSuccessModal(false);
-      resetFlight();
+      resetLaunchState();
       setTelemetryLog(message);
     },
-    [installed, resetFlight]
+    [installed, resetLaunchState]
   );
 
   const handleSetInstalled = useCallback(
@@ -189,9 +194,7 @@ export function App() {
         return next;
       });
 
-      setLaunched(false);
-      setShowSuccessModal(false);
-      resetFlight();
+      resetLaunchState();
       setTelemetryLog(
         `[PROCUREMENT] ${part.code} set to ${
           willBeReused
@@ -200,7 +203,7 @@ export function App() {
         }.`
       );
     },
-    [surplus, resetFlight]
+    [surplus, resetLaunchState]
   );
 
   const handleAutoFit = useCallback(() => {
@@ -208,22 +211,18 @@ export function App() {
       getAutoFitBuild(mission);
     setInstalled(fitInstalled);
     setSurplus(fitSurplus);
-    setLaunched(false);
-    setShowSuccessModal(false);
-    resetFlight();
+    resetLaunchState();
     setTelemetryLog(
       `[AUTO-FIT] Configured valid ${fitInstalled.size}-module vehicle for ${mission.id}. Review fuel staging, height, and delta-V before launch.`
     );
-  }, [mission, resetFlight]);
+  }, [mission, resetLaunchState]);
 
   const handleReset = useCallback(() => {
     setInstalled(new Set(['capsule']));
     setSurplus(new Set());
-    setLaunched(false);
-    setShowSuccessModal(false);
-    resetFlight();
+    resetLaunchState();
     setTelemetryLog('[RESET] Assembly returned to initial configuration.');
-  }, [resetFlight]);
+  }, [resetLaunchState]);
 
   const handleNewCampaign = useCallback(() => {
     setCampaign({
@@ -235,13 +234,11 @@ export function App() {
     setMissionIdx(0);
     setInstalled(new Set(['capsule']));
     setSurplus(new Set());
-    setLaunched(false);
-    setShowSuccessModal(false);
     setShowLogoutModal(false);
-    resetFlight(MISSIONS[0]);
+    resetLaunchState(MISSIONS[0]);
     setTelemetryLog(INITIAL_TELEMETRY);
     setScreen('dashboard');
-  }, [resetFlight]);
+  }, [resetLaunchState]);
 
   const handleLaunch = useCallback(() => {
     if (launched) return;
@@ -311,8 +308,7 @@ export function App() {
             onAutoFit={handleAutoFit}
             onOpenNasaCodex={() => setShowNasaModal(true)}
             onOpenStartMenu={() => {
-              resetFlight();
-              setLaunched(false);
+              resetLaunchState();
               setScreen('start');
             }}
             onOpenLogout={() => setShowLogoutModal(true)}
@@ -400,14 +396,12 @@ export function App() {
           onResumeDashboard={() => setShowLogoutModal(false)}
           onReturnToStartMenu={() => {
             setShowLogoutModal(false);
-            resetFlight();
-            setLaunched(false);
+            resetLaunchState();
             setScreen('start');
           }}
           onPowerDown={() => {
             setShowLogoutModal(false);
-            resetFlight();
-            setLaunched(false);
+            resetLaunchState();
             setScreen('closed');
           }}
           onRebootToStartMenu={() => setScreen('start')}

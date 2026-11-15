@@ -26,6 +26,29 @@ export function LogoutModal({
   const completedCount = completedSet.size;
   const director = commanderName.trim() || 'CDR. VANCE';
 
+  const summaryGrid = (
+    <div className="debrief-summary-grid">
+      <div className="debrief-stat">
+        <span>MISSIONS COMPLETED</span>
+        <strong className="accent-mint">
+          {completedCount} / {MISSIONS.length}
+        </strong>
+      </div>
+      <div className="debrief-stat">
+        <span>ASTRONAUTS RESCUED</span>
+        <strong>{rescued}</strong>
+      </div>
+      <div className="debrief-stat">
+        <span>CARGO DELIVERED</span>
+        <strong>{fmt(delivered)} kg</strong>
+      </div>
+      <div className="debrief-stat">
+        <span>AGENCY RESERVE</span>
+        <strong className="accent-cyan">{money(reserve)}</strong>
+      </div>
+    </div>
+  );
+
   if (mode === 'closed') {
     return (
       <div
@@ -46,26 +69,7 @@ export function LogoutModal({
               telemetry and mission grants have been archived locally.
             </p>
 
-            <div className="debrief-summary-grid">
-              <div className="debrief-stat">
-                <span>MISSIONS COMPLETED</span>
-                <strong className="accent-mint">
-                  {completedCount} / {MISSIONS.length}
-                </strong>
-              </div>
-              <div className="debrief-stat">
-                <span>ASTRONAUTS RESCUED</span>
-                <strong>{rescued}</strong>
-              </div>
-              <div className="debrief-stat">
-                <span>CARGO DELIVERED</span>
-                <strong>{fmt(delivered)} kg</strong>
-              </div>
-              <div className="debrief-stat">
-                <span>AGENCY RESERVE</span>
-                <strong className="accent-cyan">{money(reserve)}</strong>
-              </div>
-            </div>
+            {summaryGrid}
 
             <div className="closed-actions">
               <button
@@ -123,26 +127,7 @@ export function LogoutModal({
           </button>
         </div>
 
-        <div className="debrief-summary-grid">
-          <div className="debrief-stat">
-            <span>MISSIONS COMPLETED</span>
-            <strong className="accent-mint">
-              {completedCount} / {MISSIONS.length}
-            </strong>
-          </div>
-          <div className="debrief-stat">
-            <span>ASTRONAUTS RESCUED</span>
-            <strong>{rescued}</strong>
-          </div>
-          <div className="debrief-stat">
-            <span>CARGO DELIVERED</span>
-            <strong>{fmt(delivered)} kg</strong>
-          </div>
-          <div className="debrief-stat">
-            <span>AGENCY RESERVE</span>
-            <strong className="accent-cyan">{money(reserve)}</strong>
-          </div>
-        </div>
+        {summaryGrid}
 
         <div className="debrief-missions-list">
           <h3>CAMPAIGN MANIFEST</h3>

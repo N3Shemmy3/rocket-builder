@@ -1,5 +1,4 @@
 export const DEFAULT_FLIGHT_DURATION = 12000;
-export const FLIGHT_DURATION = DEFAULT_FLIGHT_DURATION;
 export const WORLD_TRAVEL = 1860;
 
 export const FLIGHT_STAGES = [

@@ -6,8 +6,22 @@ export const PART_CATEGORIES = [
   { id: 'aero', label: 'AERO & GUIDANCE' },
 ];
 
+function definePart(spec) {
+  const propellantMass = spec.propellantMass ?? 0;
+  return {
+    dryMass: spec.mass - propellantMass,
+    propellantMass,
+    cargo: 0,
+    seats: 0,
+    dv: 0,
+    thrust: 0,
+    ispNumeric: 0,
+    ...spec,
+  };
+}
+
 export const PARTS = {
-  capsule: {
+  capsule: definePart({
     type: 'PAYLOAD / CAPSULE',
     category: 'payload',
     slotGroup: 'payload',
@@ -20,21 +34,15 @@ export const PARTS = {
     cost: 2000000,
     prep: 2,
     mass: 1200,
-    dryMass: 1200,
-    propellantMass: 0,
     cargo: 800,
-    seats: 0,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A (RCS Only)',
     heightPx: 64,
     heightM: 6.5,
     nasaAnalog: 'Cygnus PCM / Dragon 2 Pressurized Supply Capsule',
     propellant: 'N2O4 / MMH RCS Thrusters (Refurbishable)',
     powerKw: 3.5,
-  },
-  capsule_science: {
+  }),
+  capsule_science: definePart({
     type: 'PAYLOAD / PROBE',
     category: 'payload',
     slotGroup: 'payload',
@@ -47,21 +55,15 @@ export const PARTS = {
     cost: 1600000,
     prep: 1.5,
     mass: 650,
-    dryMass: 650,
-    propellantMass: 0,
     cargo: 500,
-    seats: 0,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A (Cold Gas)',
     heightPx: 54,
     heightM: 5.2,
     nasaAnalog: 'NASA PACE / LCRD Deep-Space Probe Bus',
     propellant: 'Monopropellant Hydrazine (Reusable Bus)',
     powerKw: 2.8,
-  },
-  capsule_crew: {
+  }),
+  capsule_crew: definePart({
     type: 'PAYLOAD / CREW',
     category: 'payload',
     slotGroup: 'payload',
@@ -74,21 +76,16 @@ export const PARTS = {
     cost: 2800000,
     prep: 2,
     mass: 1600,
-    dryMass: 1600,
-    propellantMass: 0,
     cargo: 400,
     seats: 3,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A (LAS + RCS)',
     heightPx: 70,
     heightM: 7.2,
     nasaAnalog: 'NASA Orion MPCV / Crew Dragon Rescue Vehicle',
     propellant: 'Hypergolic Crew Service Module (Reusable)',
     powerKw: 5.2,
-  },
-  capsule_heavy: {
+  }),
+  capsule_heavy: definePart({
     type: 'PAYLOAD / CARGO BAY',
     category: 'payload',
     slotGroup: 'payload',
@@ -101,22 +98,16 @@ export const PARTS = {
     cost: 3200000,
     prep: 3,
     mass: 2100,
-    dryMass: 2100,
-    propellantMass: 0,
     cargo: 1600,
-    seats: 0,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A (Logistics)',
     heightPx: 84,
     heightM: 9.0,
     nasaAnalog: 'Artemis Deep-Space Logistics Module (CLPS)',
     propellant: 'MMH / MON-3 Docking Thrusters (Reusable)',
     powerKw: 4.5,
-  },
+  }),
 
-  upper_tank_liquid: {
+  upper_tank_liquid: definePart({
     type: 'UPPER STAGE TANK',
     category: 'upper_booster',
     slotGroup: 'upperTank',
@@ -129,20 +120,15 @@ export const PARTS = {
     cost: 1900000,
     prep: 2,
     mass: 3800,
-    dryMass: 900,
     propellantMass: 2900,
-    cargo: 0,
-    seats: 0,
     dv: 2500,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'LH2 / LOX Cryo Tank',
     heightPx: 58,
     heightM: 6.8,
     nasaAnalog: 'Centaur V Balloon-Stabilized LH2/LOX Stage',
     propellant: 'Liquid Hydrogen / LOX (Reusable Tankage)',
-  },
-  upper_engine_liquid: {
+  }),
+  upper_engine_liquid: definePart({
     type: 'UPPER STAGE ENGINE',
     category: 'upper_booster',
     slotGroup: 'upperEngine',
@@ -155,10 +141,6 @@ export const PARTS = {
     cost: 1800000,
     prep: 2,
     mass: 950,
-    dryMass: 950,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
     dv: 1300,
     thrust: 180000,
     ispNumeric: 450,
@@ -167,8 +149,8 @@ export const PARTS = {
     heightM: 4.0,
     nasaAnalog: 'Aerojet Rocketdyne RL10C-1-1 Expander Cycle',
     propellant: 'LH2 / LOX Vacuum Bell (Reusable)',
-  },
-  upper_solid_kick: {
+  }),
+  upper_solid_kick: definePart({
     type: 'SOLID KICK STAGE',
     category: 'upper_booster',
     slotGroup: 'upperSolid',
@@ -181,10 +163,7 @@ export const PARTS = {
     cost: 1100000,
     prep: 1,
     mass: 2400,
-    dryMass: 450,
     propellantMass: 1950,
-    cargo: 0,
-    seats: 0,
     dv: 2300,
     thrust: 150000,
     ispNumeric: 292,
@@ -193,9 +172,9 @@ export const PARTS = {
     heightM: 5.0,
     nasaAnalog: 'Star-48BV Spin-Stabilized Solid Kick Motor',
     propellant: 'HTPB / APCP Solid Composite (Expendable)',
-  },
+  }),
 
-  tank: {
+  tank: definePart({
     type: 'CORE FUEL TANK',
     category: 'core',
     slotGroup: 'coreTank',
@@ -208,20 +187,15 @@ export const PARTS = {
     cost: 2500000,
     prep: 3,
     mass: 9000,
-    dryMass: 2200,
     propellantMass: 6800,
-    cargo: 0,
-    seats: 0,
     dv: 6800,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'LOX / RP-1 Tank',
     heightPx: 96,
     heightM: 12.0,
     nasaAnalog: 'Falcon 9 / Vulcan Al-Li Common Dome Core Tank',
     propellant: 'LOX / RP-1 (Refurbishable Core)',
-  },
-  tank_cryo_heavy: {
+  }),
+  tank_cryo_heavy: definePart({
     type: 'HEAVY CORE TANK',
     category: 'core',
     slotGroup: 'coreTank',
@@ -234,20 +208,15 @@ export const PARTS = {
     cost: 3600000,
     prep: 4,
     mass: 12500,
-    dryMass: 2800,
     propellantMass: 9700,
-    cargo: 0,
-    seats: 0,
     dv: 8000,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'LH2 / LOX Heavy Stack',
     heightPx: 128,
     heightM: 16.5,
     nasaAnalog: 'NASA SLS Core Stage Cryogenic Tank',
     propellant: 'Liquid Hydrogen / LOX (Reusable Core)',
-  },
-  tank_finned: {
+  }),
+  tank_finned: definePart({
     type: 'FINNED CORE TANK',
     category: 'core',
     slotGroup: 'coreTank',
@@ -260,20 +229,15 @@ export const PARTS = {
     cost: 3000000,
     prep: 3.5,
     mass: 10800,
-    dryMass: 2500,
     propellantMass: 8300,
-    cargo: 0,
-    seats: 0,
     dv: 7400,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'LOX / LCH4 Finned Core',
     heightPx: 112,
     heightM: 14.2,
     nasaAnalog: 'New Glenn / Starship Finned Reusable Core Stage',
     propellant: 'Liquid Methane / LOX (Finned Aero Core)',
-  },
-  tank_solid_core: {
+  }),
+  tank_solid_core: definePart({
     type: 'SOLID CORE CASING',
     category: 'core',
     slotGroup: 'coreTank',
@@ -286,21 +250,16 @@ export const PARTS = {
     cost: 1500000,
     prep: 1.5,
     mass: 10500,
-    dryMass: 2500,
     propellantMass: 8000,
-    cargo: 0,
-    seats: 0,
     dv: 5800,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'Solid Propellant Grain',
     heightPx: 84,
     heightM: 10.0,
     nasaAnalog: 'Ares I / Castor 120 Segmented Solid First Stage',
     propellant: 'PBAN Solid Composite Grain (Expendable)',
-  },
+  }),
 
-  engine: {
+  engine: definePart({
     type: 'CORE LIQUID ENGINE',
     category: 'core',
     slotGroup: 'coreEngine',
@@ -313,10 +272,6 @@ export const PARTS = {
     cost: 2600000,
     prep: 3,
     mass: 3100,
-    dryMass: 3100,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
     dv: 2800,
     thrust: 560000,
     ispNumeric: 348,
@@ -325,8 +280,8 @@ export const PARTS = {
     heightM: 6.0,
     nasaAnalog: 'RS-25 / Merlin 1D Sea-Level Class',
     propellant: 'LOX / RP-1 Turbopump (Reusable)',
-  },
-  engine_heavy_liquid: {
+  }),
+  engine_heavy_liquid: definePart({
     type: 'HEAVY CORE ENGINE',
     category: 'core',
     slotGroup: 'coreEngine',
@@ -339,10 +294,6 @@ export const PARTS = {
     cost: 3800000,
     prep: 4,
     mass: 4600,
-    dryMass: 4600,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
     dv: 3300,
     thrust: 840000,
     ispNumeric: 360,
@@ -351,8 +302,8 @@ export const PARTS = {
     heightM: 7.2,
     nasaAnalog: 'SLS Quad-RS-25 / Falcon Heavy Core Cluster',
     propellant: 'Staged Combustion Cryo Cluster (Reusable)',
-  },
-  engine_solid: {
+  }),
+  engine_solid: definePart({
     type: 'SOLID MOTOR NOZZLE',
     category: 'core',
     slotGroup: 'coreEngine',
@@ -365,10 +316,6 @@ export const PARTS = {
     cost: 1400000,
     prep: 1,
     mass: 2800,
-    dryMass: 2800,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
     dv: 2200,
     thrust: 680000,
     ispNumeric: 285,
@@ -377,9 +324,9 @@ export const PARTS = {
     heightM: 5.0,
     nasaAnalog: 'Minotaur / Castor TVC Solid Nozzle Assembly',
     propellant: 'Carbon-Phenolic Solid Nozzle (Expendable)',
-  },
+  }),
 
-  booster_solid: {
+  booster_solid: definePart({
     type: 'SOLID STRAP-ON SRB',
     category: 'upper_booster',
     slotGroup: 'booster',
@@ -392,10 +339,7 @@ export const PARTS = {
     cost: 1600000,
     prep: 1.5,
     mass: 5200,
-    dryMass: 1200,
     propellantMass: 4000,
-    cargo: 0,
-    seats: 0,
     dv: 1900,
     thrust: 420000,
     ispNumeric: 275,
@@ -404,8 +348,8 @@ export const PARTS = {
     heightM: 0,
     nasaAnalog: 'GEM-63XL / SLS 5-Segment Twin Side Boosters',
     propellant: 'HTPB Solid Side Boosters (Expendable)',
-  },
-  booster_liquid: {
+  }),
+  booster_liquid: definePart({
     type: 'LIQUID STRAP-ON BOOSTER',
     category: 'upper_booster',
     slotGroup: 'booster',
@@ -418,10 +362,7 @@ export const PARTS = {
     cost: 3400000,
     prep: 3,
     mass: 6400,
-    dryMass: 1500,
     propellantMass: 4900,
-    cargo: 0,
-    seats: 0,
     dv: 2700,
     thrust: 520000,
     ispNumeric: 335,
@@ -430,9 +371,9 @@ export const PARTS = {
     heightM: 0,
     nasaAnalog: 'Falcon Heavy Recoverable Side Cores',
     propellant: 'LOX / RP-1 Twin Side Cores (Reusable)',
-  },
+  }),
 
-  avionics: {
+  avionics: definePart({
     type: 'GUIDANCE BAY',
     category: 'aero',
     slotGroup: 'avionics',
@@ -445,20 +386,13 @@ export const PARTS = {
     cost: 850000,
     prep: 1,
     mass: 220,
-    dryMass: 220,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A',
     heightPx: 32,
     heightM: 3.2,
     nasaAnalog: 'NASA Orion Fault-Tolerant Flight Computer',
     propellant: 'Redundant MIL-STD-1553 Guidance Bus',
-  },
-  stabilizer: {
+  }),
+  stabilizer: definePart({
     type: 'AERO STABILIZER',
     category: 'aero',
     slotGroup: 'stabilizer',
@@ -471,20 +405,13 @@ export const PARTS = {
     cost: 450000,
     prep: 1,
     mass: 350,
-    dryMass: 350,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
-    dv: 0,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A',
     heightPx: 0,
     heightM: 0,
     nasaAnalog: 'Titanium Grid / Aero Fin Actuators',
     propellant: 'Hydraulic Cold-Gas Control Fins',
-  },
-  fairing: {
+  }),
+  fairing: definePart({
     type: 'NOSE FAIRING',
     category: 'aero',
     slotGroup: 'fairing',
@@ -497,52 +424,30 @@ export const PARTS = {
     cost: 300000,
     prep: 1,
     mass: 180,
-    dryMass: 180,
-    propellantMass: 0,
-    cargo: 0,
-    seats: 0,
     dv: 150,
-    thrust: 0,
-    ispNumeric: 0,
     isp: 'N/A',
     heightPx: 24,
     heightM: 3.0,
     nasaAnalog: '5m Composite Acoustic Payload Shroud',
     propellant: 'Pneumatic Separation System',
-  },
+  }),
 };
 
-export const PART_ORDER = [
-  'capsule',
-  'capsule_science',
-  'capsule_crew',
-  'capsule_heavy',
-  'upper_tank_liquid',
-  'upper_engine_liquid',
-  'upper_solid_kick',
-  'tank',
-  'tank_cryo_heavy',
-  'tank_finned',
-  'tank_solid_core',
-  'engine',
-  'engine_heavy_liquid',
-  'engine_solid',
-  'booster_solid',
-  'booster_liquid',
-  'avionics',
-  'stabilizer',
-  'fairing',
-];
+export const PART_ORDER = Object.keys(PARTS);
 
-export const AUTOFIT_SURPLUS = ['capsule', 'tank', 'engine'];
-
-export function getInstalledPartByGroup(installedSet, slotGroup) {
+export function getInstalledPartsByGroup(installedSet) {
+  const byGroup = {};
   for (const key of installedSet) {
-    if (PARTS[key]?.slotGroup === slotGroup) {
-      return { key, part: PARTS[key] };
+    const part = PARTS[key];
+    if (part && !byGroup[part.slotGroup]) {
+      byGroup[part.slotGroup] = { key, part };
     }
   }
-  return null;
+  return byGroup;
+}
+
+export function getInstalledPartByGroup(installedSet, slotGroup) {
+  return getInstalledPartsByGroup(installedSet)[slotGroup] ?? null;
 }
 
 export function installPartInSet(installedSet, partKey) {

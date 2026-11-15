@@ -1,6 +1,296 @@
 import { useEffect } from 'react';
 import { fmt, money } from '../utils/format';
 
+const DESTINATION_LABELS = {
+  station: 'ISS HORIZON-1',
+  'lunar-relay': 'LUNAR RELAY',
+  aurora: 'POLAR ORBIT',
+  rescue: 'CREW CAPSULE',
+  outpost: 'FRONTIER OUTPOST',
+};
+
+function DestinationIcon({ sceneType }) {
+  switch (sceneType) {
+    case 'station':
+      return (
+        <svg viewBox="0 0 64 64">
+          {/* Central truss */}
+          <line
+            x1="6"
+            y1="32"
+            x2="58"
+            y2="32"
+            stroke="#bd73fa"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          {/* Solar array wings */}
+          <g fill="none" stroke="#bd73fa" strokeWidth="1.8">
+            <rect x="9" y="13" width="6" height="15" rx="1" />
+            <rect x="9" y="36" width="6" height="15" rx="1" />
+            <rect x="17" y="13" width="6" height="15" rx="1" />
+            <rect x="17" y="36" width="6" height="15" rx="1" />
+            <rect x="41" y="13" width="6" height="15" rx="1" />
+            <rect x="41" y="36" width="6" height="15" rx="1" />
+            <rect x="49" y="13" width="6" height="15" rx="1" />
+            <rect x="49" y="36" width="6" height="15" rx="1" />
+          </g>
+          {/* Pressurized core & docking port */}
+          <rect
+            x="26"
+            y="24"
+            width="12"
+            height="16"
+            rx="2"
+            fill="#0c0712"
+            stroke="#bd73fa"
+            strokeWidth="2.2"
+          />
+          <rect
+            x="29"
+            y="40"
+            width="6"
+            height="7"
+            fill="none"
+            stroke="#00ffc8"
+            strokeWidth="1.8"
+          />
+          <circle cx="32" cy="52" r="2.2" fill="#00ffc8" />
+        </svg>
+      );
+    case 'lunar-relay':
+      return (
+        <svg viewBox="0 0 64 64">
+          {/* Cratered lunar body */}
+          <circle
+            cx="40"
+            cy="40"
+            r="15"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.3"
+          />
+          <circle
+            cx="45"
+            cy="37"
+            r="3.8"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="1.6"
+          />
+          <circle
+            cx="35"
+            cy="45"
+            r="2.6"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="1.6"
+          />
+          {/* Relay satellite */}
+          <rect
+            x="15"
+            y="14"
+            width="10"
+            height="10"
+            rx="1.5"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+          />
+          <rect
+            x="6"
+            y="17"
+            width="9"
+            height="4"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="1.6"
+          />
+          <rect
+            x="25"
+            y="17"
+            width="9"
+            height="4"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="1.6"
+          />
+          {/* Relay signal arcs */}
+          <path
+            d="M15 28 Q20 33 25 28"
+            fill="none"
+            stroke="#00ffc8"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M11 33 Q20 40 29 33"
+            fill="none"
+            stroke="#00ffc8"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.75"
+          />
+        </svg>
+      );
+    case 'aurora':
+      return (
+        <svg viewBox="0 0 64 64">
+          {/* Aurora ribbons */}
+          <path
+            d="M10 22 Q22 10 34 20 T54 14"
+            fill="none"
+            stroke="#00ffc8"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+          <path
+            d="M12 30 Q24 20 36 28 T52 23"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          {/* Polar Earth limb */}
+          <path
+            d="M10 50 Q32 33 54 50"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M16 54 Q32 42 48 54"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            opacity="0.65"
+          />
+          {/* Science probe */}
+          <circle cx="32" cy="14" r="2.5" fill="#00ffc8" />
+        </svg>
+      );
+    case 'rescue':
+      return (
+        <svg viewBox="0 0 64 64">
+          {/* Distress / rendezvous reticle */}
+          <circle
+            cx="32"
+            cy="33"
+            r="23"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+            strokeDasharray="5 4"
+          />
+          {/* Crew capsule */}
+          <path
+            d="M32 16 L43 35 H21 Z"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+          />
+          <rect
+            x="23"
+            y="35"
+            width="18"
+            height="8"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+          />
+          {/* Beacon */}
+          <circle cx="32" cy="12" r="2.5" fill="#00ffc8" />
+        </svg>
+      );
+    case 'outpost':
+      return (
+        <svg viewBox="0 0 64 64">
+          {/* Frontier ground horizon */}
+          <line
+            x1="8"
+            y1="49"
+            x2="56"
+            y2="49"
+            stroke="#bd73fa"
+            strokeWidth="2.3"
+            strokeLinecap="round"
+          />
+          {/* Habitat domes */}
+          <path
+            d="M13 49 A12 11 0 0 1 37 49"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.3"
+          />
+          <path
+            d="M35 49 A9 8 0 0 1 51 49"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.1"
+          />
+          {/* Comms mast */}
+          <line
+            x1="25"
+            y1="38"
+            x2="25"
+            y2="20"
+            stroke="#bd73fa"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M19 23 Q25 17 31 23"
+            fill="none"
+            stroke="#00ffc8"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <circle cx="25" cy="15" r="2.2" fill="#00ffc8" />
+        </svg>
+      );
+    default:
+      return (
+        <svg viewBox="0 0 64 64">
+          <circle
+            cx="32"
+            cy="32"
+            r="24"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2.5"
+          />
+          <circle
+            cx="41"
+            cy="31"
+            r="7"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+          />
+          <circle
+            cx="22"
+            cy="20"
+            r="4"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+          />
+          <circle
+            cx="23"
+            cy="45"
+            r="4.5"
+            fill="none"
+            stroke="#bd73fa"
+            strokeWidth="2"
+          />
+        </svg>
+      );
+  }
+}
+
 export function MissionSuccessModal({
   mission,
   missionIndex,
@@ -23,6 +313,8 @@ export function MissionSuccessModal({
 
   const crewRescued = missionIndex === 3 ? 3 : 0;
   const allComplete = completedCount >= totalMissions;
+  const sceneType = mission.flightProfile?.sceneType;
+  const destinationLabel = DESTINATION_LABELS[sceneType] || 'DESTINATION';
 
   return (
     <div
@@ -83,41 +375,8 @@ export function MissionSuccessModal({
             </span>
           </div>
           <div className="trajectory-node">
-            <svg viewBox="0 0 64 64">
-              <circle
-                cx="32"
-                cy="32"
-                r="24"
-                fill="none"
-                stroke="#bd73fa"
-                strokeWidth="2.5"
-              />
-              <circle
-                cx="41"
-                cy="31"
-                r="7"
-                fill="none"
-                stroke="#bd73fa"
-                strokeWidth="2"
-              />
-              <circle
-                cx="22"
-                cy="20"
-                r="4"
-                fill="none"
-                stroke="#bd73fa"
-                strokeWidth="2"
-              />
-              <circle
-                cx="23"
-                cy="45"
-                r="4.5"
-                fill="none"
-                stroke="#bd73fa"
-                strokeWidth="2"
-              />
-            </svg>
-            <span>DESTINATION</span>
+            <DestinationIcon sceneType={sceneType} />
+            <span>{destinationLabel}</span>
           </div>
         </div>
 

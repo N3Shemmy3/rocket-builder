@@ -1,4 +1,4 @@
-import { getInstalledPartByGroup, PARTS } from '../data/parts.js';
+import { getInstalledPartsByGroup, PARTS } from '../data/parts.js';
 
 const BASE_STRUCTURAL_MASS = 6500;
 const STAGE_STRUCTURAL_MASS = 2200;
@@ -31,17 +31,18 @@ export function getPartPrep(key, surplusSet) {
 
 export function computeRocketStats(installedSet, surplusSet) {
   const installedKeys = [...installedSet].filter((key) => Boolean(PARTS[key]));
+  const byGroup = getInstalledPartsByGroup(installedSet);
 
-  const payload = getInstalledPartByGroup(installedSet, 'payload')?.part ?? null;
-  const coreTank = getInstalledPartByGroup(installedSet, 'coreTank')?.part ?? null;
-  const coreEngine = getInstalledPartByGroup(installedSet, 'coreEngine')?.part ?? null;
-  const upperTank = getInstalledPartByGroup(installedSet, 'upperTank')?.part ?? null;
-  const upperEngine = getInstalledPartByGroup(installedSet, 'upperEngine')?.part ?? null;
-  const upperSolid = getInstalledPartByGroup(installedSet, 'upperSolid')?.part ?? null;
-  const booster = getInstalledPartByGroup(installedSet, 'booster')?.part ?? null;
-  const avionics = getInstalledPartByGroup(installedSet, 'avionics')?.part ?? null;
-  const stabilizer = getInstalledPartByGroup(installedSet, 'stabilizer')?.part ?? null;
-  const fairing = getInstalledPartByGroup(installedSet, 'fairing')?.part ?? null;
+  const payload = byGroup.payload?.part ?? null;
+  const coreTank = byGroup.coreTank?.part ?? null;
+  const coreEngine = byGroup.coreEngine?.part ?? null;
+  const upperTank = byGroup.upperTank?.part ?? null;
+  const upperEngine = byGroup.upperEngine?.part ?? null;
+  const upperSolid = byGroup.upperSolid?.part ?? null;
+  const booster = byGroup.booster?.part ?? null;
+  const avionics = byGroup.avionics?.part ?? null;
+  const stabilizer = byGroup.stabilizer?.part ?? null;
+  const fairing = byGroup.fairing?.part ?? null;
 
   const hasCoreFuelMismatch = Boolean(
     coreTank && coreEngine && coreTank.fuelType !== coreEngine.fuelType
@@ -57,22 +58,25 @@ export function computeRocketStats(installedSet, surplusSet) {
       ? BASE_STRUCTURAL_MASS + stages * STAGE_STRUCTURAL_MASS
       : 0;
 
-  const partMass = installedKeys.reduce((acc, key) => acc + PARTS[key].mass, 0);
+  let partMass = 0;
+  let propellantMass = 0;
+  let cost = 0;
+  let prep = 0;
+  let reusedCount = 0;
+  let solidCount = 0;
+
+  for (const key of installedKeys) {
+    const part = PARTS[key];
+    const reused = isPartReused(key, surplusSet);
+    partMass += part.mass;
+    propellantMass += part.propellantMass || 0;
+    cost += getPartCost(key, surplusSet);
+    prep += getPartPrep(key, surplusSet);
+    if (reused) reusedCount += 1;
+    if (part.fuelType === 'solid') solidCount += 1;
+  }
+
   const mass = partMass + structuralMass;
-
-  const propellantMass = installedKeys.reduce(
-    (acc, key) => acc + (PARTS[key].propellantMass || 0),
-    0
-  );
-
-  const cost = installedKeys.reduce(
-    (acc, key) => acc + getPartCost(key, surplusSet),
-    0
-  );
-  const prep = installedKeys.reduce(
-    (acc, key) => acc + getPartPrep(key, surplusSet),
-    0
-  );
 
   const payloadMass = payload ? payload.mass : 1200;
   const payloadDvModifier = Math.round((1200 - payloadMass) * 0.45);
@@ -156,13 +160,6 @@ export function computeRocketStats(installedSet, surplusSet) {
         boosterOverhangPx
       : 0;
 
-  const reusedCount = installedKeys.filter((key) =>
-    isPartReused(key, surplusSet)
-  ).length;
-  const solidCount = installedKeys.filter(
-    (key) => PARTS[key].fuelType === 'solid'
-  ).length;
-
   const reliability = Math.min(
     99,
     Math.max(
@@ -199,12 +196,13 @@ export function computeRocketStats(installedSet, surplusSet) {
 
 export function validateLaunch(installedSet, stats, mission) {
   const issues = [];
-  const payload = getInstalledPartByGroup(installedSet, 'payload')?.part ?? null;
-  const coreTank = getInstalledPartByGroup(installedSet, 'coreTank')?.part ?? null;
-  const coreEngine = getInstalledPartByGroup(installedSet, 'coreEngine')?.part ?? null;
-  const upperTank = getInstalledPartByGroup(installedSet, 'upperTank')?.part ?? null;
-  const upperEngine = getInstalledPartByGroup(installedSet, 'upperEngine')?.part ?? null;
-  const booster = getInstalledPartByGroup(installedSet, 'booster')?.part ?? null;
+  const byGroup = getInstalledPartsByGroup(installedSet);
+  const payload = byGroup.payload?.part ?? null;
+  const coreTank = byGroup.coreTank?.part ?? null;
+  const coreEngine = byGroup.coreEngine?.part ?? null;
+  const upperTank = byGroup.upperTank?.part ?? null;
+  const upperEngine = byGroup.upperEngine?.part ?? null;
+  const booster = byGroup.booster?.part ?? null;
 
   if (!payload) {
     issues.push('payload missing');

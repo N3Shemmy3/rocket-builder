@@ -401,21 +401,6 @@ export function FlightScene({
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="pad-sky" x2="0" y2="1">
-            <stop stopColor="#202441" />
-            <stop offset=".65" stopColor="#74668c" />
-            <stop offset="1" stopColor="#d39a84" />
-          </linearGradient>
-          <linearGradient id="blue-sky" x2="0" y2="1">
-            <stop stopColor="#17385d" />
-            <stop offset=".68" stopColor="#3a81a3" />
-            <stop offset="1" stopColor="#a3ced0" />
-          </linearGradient>
-          <linearGradient id="orbital-sky" x2="0" y2="1">
-            <stop stopColor="#060711" />
-            <stop offset=".76" stopColor="#111a34" />
-            <stop offset="1" stopColor="#36719a" />
-          </linearGradient>
           <linearGradient
             id="world-gradient"
             x1="0"
