@@ -1,191 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="NASA Capricorn Mission Control Favicon">
-  <defs>
-    <!-- Deep obsidian-violet mission control backdrop -->
-    <radialGradient id="voidBg" cx="50%" cy="46%" r="62%">
-      <stop offset="0%" stop-color="#221333" />
-      <stop offset="55%" stop-color="#110818" />
-      <stop offset="100%" stop-color="#09020a" />
-    </radialGradient>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%" fill="none">
+  <!-- 1. Solid Obsidian-Violet Background & Crisp 2px Technical Border -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#09020a" stroke="#302b35" stroke-width="2" />
 
-    <!-- Cyan telemetry glow -->
-    <radialGradient id="cyanAura" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#00f4d6" stop-opacity="0.28" />
-      <stop offset="65%" stop-color="#bd73fa" stop-opacity="0.08" />
-      <stop offset="100%" stop-color="#09020a" stop-opacity="0" />
-    </radialGradient>
+  <!-- 2. Sweeping Orbital Ascent Trajectory Arc -->
+  <path d="M 12 52 C 13 36, 22 22, 43 15.5" stroke="#bd73fa" stroke-width="2.5" stroke-linecap="round" />
 
-    <!-- Hull metallic-lavender gradient -->
-    <linearGradient id="hullGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#d8cff0" />
-      <stop offset="45%" stop-color="#f6f2ff" />
-      <stop offset="100%" stop-color="#a89bc4" />
-    </linearGradient>
+  <!-- 3. Orbital Insertion Target Node -->
+  <circle cx="50" cy="14" r="3" fill="#00ffc8" />
 
-    <!-- Booster body gradient -->
-    <linearGradient id="boosterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#7c56a3" />
-      <stop offset="50%" stop-color="#bd73fa" />
-      <stop offset="100%" stop-color="#5d3b80" />
-    </linearGradient>
+  <!-- 4. Ultra-Minimal Geometric Launch Vehicle (Angled 35° CW) -->
+  <!-- Negative-space cutout mask ensures crisp separation over the trajectory arc at 16x16 -->
+  <g transform="translate(30, 32) rotate(35)">
+    <!-- Solid #09020a halo buffer to break the purple arc cleanly around the vehicle -->
+    <path d="M 0 -17 L 11 11 L -11 11 Z" fill="#09020a" />
 
-    <!-- Exhaust plume gradient -->
-    <linearGradient id="plumeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f6f2ff" />
-      <stop offset="28%" stop-color="#00ffc8" />
-      <stop offset="65%" stop-color="#ffae70" />
-      <stop offset="100%" stop-color="#f3738b" stop-opacity="0" />
-    </linearGradient>
+    <!-- Short Electric Cyan Thrust Dash -->
+    <line x1="0" y1="11" x2="0" y2="17" stroke="#00ffc8" stroke-width="2.8" stroke-linecap="round" />
 
-    <!-- Subtle glow filter for orbital & exhaust accents -->
-    <filter id="hudGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.4" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </defs>
+    <!-- Two Minimal Swept Fin Triangles -->
+    <polygon points="-4.2,1 -9.5,9.5 -4.2,7.5" fill="#f6f2ff" />
+    <polygon points="4.2,1 9.5,9.5 4.2,7.5" fill="#f6f2ff" />
 
-  <!-- Base chamfered Mission Control frame -->
-  <rect x="2" y="2" width="124" height="124" rx="14" fill="url(#voidBg)" stroke="#302b35" stroke-width="2.5" />
-  <rect x="6" y="6" width="116" height="116" rx="10" fill="none" stroke="#1d1426" stroke-width="1" />
-
-  <!-- Subtle blueprint coordinate grid -->
-  <g stroke="#302b35" stroke-width="0.75" opacity="0.55">
-    <line x1="32" y1="10" x2="32" y2="118" />
-    <line x1="64" y1="10" x2="64" y2="118" />
-    <line x1="96" y1="10" x2="96" y2="118" />
-    <line x1="10" y1="32" x2="118" y2="32" />
-    <line x1="10" y1="64" x2="118" y2="64" />
-    <line x1="10" y1="96" x2="118" y2="96" />
-  </g>
-
-  <!-- Central telemetry aura -->
-  <circle cx="64" cy="62" r="46" fill="url(#cyanAura)" />
-
-  <!-- Starfield & deep-space telemetry markers -->
-  <g fill="#f6f2ff">
-    <circle cx="23" cy="28" r="1.1" opacity="0.85" />
-    <circle cx="105" cy="86" r="1.2" opacity="0.75" />
-    <circle cx="26" cy="92" r="0.9" opacity="0.6" />
-    <circle cx="96" cy="48" r="0.9" opacity="0.65" />
-  </g>
-  <g stroke="#bd73fa" stroke-width="1" opacity="0.75">
-    <path d="M22 64 h4 M24 62 v4" />
-    <path d="M104 60 h4 M106 58 v4" />
-  </g>
-
-  <!-- Outer orbital telemetry ring & degree ticks -->
-  <circle cx="64" cy="64" r="46" fill="none" stroke="#302b35" stroke-width="1.2" stroke-dasharray="3 4" />
-  <g stroke="#00f4d6" stroke-width="1.4" opacity="0.7">
-    <line x1="64" y1="13" x2="64" y2="17" />
-    <line x1="64" y1="111" x2="64" y2="115" />
-    <line x1="13" y1="64" x2="17" y2="64" />
-    <line x1="111" y1="64" x2="115" y2="64" />
-  </g>
-
-  <!-- Cislunar / orbital transfer trajectory arc -->
-  <path
-    d="M 24 94 C 24 48, 56 22, 98 25"
-    fill="none"
-    stroke="#00f4d6"
-    stroke-width="1.6"
-    stroke-dasharray="4 3"
-    opacity="0.85"
-    filter="url(#hudGlow)"
-  />
-  <!-- Secondary purple return/telemetry arc -->
-  <path
-    d="M 102 44 C 108 72, 90 100, 56 105"
-    fill="none"
-    stroke="#bd73fa"
-    stroke-width="1.3"
-    stroke-dasharray="2.5 3.5"
-    opacity="0.75"
-  />
-
-  <!-- Lunar / Orbital Destination Target Node (top-right) -->
-  <g transform="translate(99, 26)" filter="url(#hudGlow)">
-    <circle cx="0" cy="0" r="8.5" fill="#130c1b" stroke="#00ffc8" stroke-width="1.6" />
-    <circle cx="0" cy="0" r="5" fill="#ffae70" />
-    <path d="M -1.5 -4.5 A 4.8 4.8 0 0 1 3.8 3.2 A 4.2 4.2 0 0 0 -1.5 -4.5 Z" fill="#1d1426" opacity="0.7" />
-  </g>
-
-  <!-- Launch Pad / Horizon Arc at bottom -->
-  <path d="M 32 103 Q 64 95 96 103" fill="none" stroke="#302b35" stroke-width="2" />
-  <line x1="42" y1="103" x2="86" y2="103" stroke="#00f4d6" stroke-width="1.4" opacity="0.6" />
-
-  <!-- MULTI-STAGE LAUNCH VEHICLE (angled slightly for dynamic ascent, centered at 64,64) -->
-  <g transform="translate(64, 65) rotate(22)">
-    <!-- Plasma Exhaust Plume -->
-    <path
-      d="M -6 25 L 0 47 L 6 25 Z"
-      fill="url(#plumeGrad)"
-      filter="url(#hudGlow)"
-    />
-    <path
-      d="M -3 25 L 0 38 L 3 25 Z"
-      fill="#f6f2ff"
-      opacity="0.92"
-    />
-    <!-- Side Booster Plumes -->
-    <path d="M -14.5 23 L -12 34 L -9.5 23 Z" fill="#ffae70" opacity="0.85" />
-    <path d="M 9.5 23 L 12 34 L 14.5 23 Z" fill="#ffae70" opacity="0.85" />
-
-    <!-- Structural Booster Struts -->
-    <rect x="-11" y="-1" width="22" height="2.2" fill="#00f4d6" />
-    <rect x="-11" y="13" width="22" height="2.2" fill="#00f4d6" />
-
-    <!-- Twin Side Boosters -->
-    <g>
-      <!-- Left Booster -->
-      <path d="M -15 22 L -15 -3 L -12 -10 L -9 -3 L -9 22 Z" fill="url(#boosterGrad)" stroke="#09020a" stroke-width="1" />
-      <path d="M -15 -3 L -12 -10 L -9 -3 Z" fill="#00f4d6" />
-      <polygon points="-15,16 -20,23 -15,22" fill="#bd73fa" stroke="#09020a" stroke-width="0.8" />
-      <rect x="-14" y="22" width="4" height="2" fill="#302b35" />
-
-      <!-- Right Booster -->
-      <path d="M 9 22 L 9 -3 L 12 -10 L 15 -3 L 15 22 Z" fill="url(#boosterGrad)" stroke="#09020a" stroke-width="1" />
-      <path d="M 9 -3 L 12 -10 L 15 -3 Z" fill="#00f4d6" />
-      <polygon points="15,16 20,23 15,22" fill="#bd73fa" stroke="#09020a" stroke-width="0.8" />
-      <rect x="10" y="22" width="4" height="2" fill="#302b35" />
-    </g>
-
-    <!-- Core Engine Bell -->
-    <path d="M -4.5 20 L -6.5 25.5 L 6.5 25.5 L 4.5 20 Z" fill="#1d1426" stroke="#00f4d6" stroke-width="1" />
-
-    <!-- Core Cryo Tank & Upper Stage -->
-    <rect x="-7.5" y="-18" width="15" height="38" rx="1.5" fill="url(#hullGrad)" stroke="#09020a" stroke-width="1.2" />
-
-    <!-- Stage Separation & Telemetry Bands -->
-    <rect x="-7.5" y="-4" width="15" height="3.2" fill="#130c1b" />
-    <line x1="-7.5" y1="-2.4" x2="7.5" y2="-2.4" stroke="#00f4d6" stroke-width="1" />
-    <rect x="-7.5" y="10" width="15" height="2.4" fill="#bd73fa" opacity="0.85" />
-
-    <!-- Crew / Payload Module Viewport -->
-    <circle cx="0" cy="-11" r="3.2" fill="#09020a" stroke="#00ffc8" stroke-width="1.3" />
-    <circle cx="0" cy="-11" r="1.4" fill="#16ec8b" />
-
-    <!-- Payload Fairing / Nosecone -->
-    <path
-      d="M -7.5 -18 C -7.5 -27, -3.5 -35, 0 -39 C 3.5 -35, 7.5 -27, 7.5 -18 Z"
-      fill="url(#hullGrad)"
-      stroke="#09020a"
-      stroke-width="1.2"
-    />
-    <!-- Fairing Blueprint Nose Tip -->
-    <path d="M -3.2 -31 C -1.5 -35, -0.5 -37.5, 0 -39 C 0.5 -37.5, 1.5 -35, 3.2 -31 Z" fill="#00ffc8" />
-  </g>
-
-  <!-- Corner Mission-Control HUD Brackets -->
-  <g fill="none" stroke-width="2.4" stroke-linecap="square">
-    <!-- Top-Left (Cyan) -->
-    <path d="M 11 23 L 11 11 L 23 11" stroke="#00ffc8" />
-    <!-- Top-Right (Purple) -->
-    <path d="M 105 11 L 117 11 L 117 23" stroke="#bd73fa" />
-    <!-- Bottom-Left (Purple) -->
-    <path d="M 11 105 L 11 117 L 23 117" stroke="#bd73fa" />
-    <!-- Bottom-Right (Cyan) -->
-    <path d="M 105 117 L 117 117 L 117 105" stroke="#00ffc8" />
+    <!-- Pointed Delta-Cone Fuselage -->
+    <polygon points="0,-14 3.6,7.5 -3.6,7.5" fill="#f6f2ff" />
   </g>
 </svg>
